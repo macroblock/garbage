@@ -1,9 +1,8 @@
 package conio
 
 import (
-	"fmt"
+	"garbage/utils"
 	"time"
-	"tui/utils"
 
 	termbox "github.com/nsf/termbox-go"
 )
@@ -17,41 +16,21 @@ var (
 type TKeyboard struct {
 }
 
-// Init - initializes conio
-func Init() error {
-	err := termbox.Init()
-	return err
-}
-
-// Close - closes conio
-func Close() {
-	if isReadEventsStarted {
-		stopReadEvents()
-	}
-	if iBuff != nil {
-		close(iBuff)
-	}
-	termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
-	termbox.Close()
-}
-
 // NewKeyboard -
 func NewKeyboard() *TKeyboard {
 	utils.Assert(termbox.IsInit, "conio is not initialized correctly")
-	if iBuff != nil {
-		return nil
-	}
-	var kbd TKeyboard
+	utils.Assert(iBuff == nil, "only one keyboard instance can be present")
+	kbd := &TKeyboard{}
 	iBuff = make(chan rune, 32)
 	kbd.Start()
-	return &kbd
+	return kbd
 }
 
 // Close -
 func (kbd *TKeyboard) Close() {
 	utils.Assert(iBuff != nil, "keyboard is not initialized")
-	kbd.Stop()
 	close(iBuff)
+	kbd.Stop()
 	iBuff = nil
 }
 
@@ -76,7 +55,7 @@ func (kbd *TKeyboard) ReadKey() rune {
 // KeyPressed - returns true if key was pressed
 func (kbd *TKeyboard) KeyPressed() bool {
 	utils.Assert(iBuff != nil, "keyboard is not initialized")
-	time.Sleep(1)
+	//time.Sleep(1)
 	return len(iBuff) > 0
 }
 
@@ -114,6 +93,5 @@ loop:
 			}
 		} // end switch
 	}
-	fmt.Println("Exit loop")
 	isReadEventsStarted = false
 }
