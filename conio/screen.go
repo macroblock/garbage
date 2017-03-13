@@ -50,8 +50,20 @@ func (scr *TScreen) FillRect(x, y, w, h int, ch rune, fg, bg TColor) {
 
 // Clear -
 func (scr *TScreen) Clear(ch rune, fg, bg TColor) {
-	w, h := termbox.Size()
-	screenInstance.FillRect(0, 0, w, h, ch, fg, bg)
+	//termbox.Clear(termbox.Attribute(fg.color), termbox.Attribute(bg.color))
+	screenInstance.FillRect(0, 0, scr.Width(), scr.Height(), ch, fg, bg)
+}
+
+// Width -
+func (scr *TScreen) Width() int {
+	w, _ := termbox.Size()
+	return w
+}
+
+// Height -
+func (scr *TScreen) Height() int {
+	_, h := termbox.Size()
+	return h
 }
 
 // Flush -
