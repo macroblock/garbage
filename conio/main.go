@@ -22,3 +22,7 @@ func Close() {
 	termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
 	termbox.Close()
 }
+
+func init() {
+	initBorder()
+}

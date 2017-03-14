@@ -13,6 +13,7 @@ var screenInstance *TScreen
 // TAlignment -
 type TAlignment int
 
+// AlignLeft -
 const (
 	AlignLeft = TAlignment(iota)
 	AlignRight
@@ -50,7 +51,7 @@ func (scr *TScreen) DrawString(x, y int, s string, fg, bg TColor) {
 	}
 }
 
-// DrawStringAlign -
+// DrawAlignedString -
 func (scr *TScreen) DrawAlignedString(x, y, w int, s string, alignment TAlignment, fg, bg TColor) {
 	len := utf8.RuneCountInString(s)
 	if len <= w {
@@ -105,6 +106,24 @@ func (scr *TScreen) FillRect(x, y, w, h int, ch rune, fg, bg TColor) {
 func (scr *TScreen) Clear(ch rune, fg, bg TColor) {
 	//termbox.Clear(termbox.Attribute(fg.color), termbox.Attribute(bg.color))
 	screenInstance.FillRect(0, 0, scr.Width(), scr.Height(), ch, fg, bg)
+}
+
+// DrawBorder -
+func (scr *TScreen) DrawBorder(x, y, w, h int, border TBorder, fg, bg TColor) {
+	if h > 0 {
+		scr.FillRect(x+1, y, w-2, 1, border.H1, fg, bg)
+		scr.FillRect(x+1, y+h-1, w-2, 1, border.H2, fg, bg)
+	}
+	if w > 0 {
+		scr.FillRect(x, y+1, 1, h-2, border.V1, fg, bg)
+		scr.FillRect(x+w-1, y+1, 1, h-2, border.V2, fg, bg)
+	}
+	if w > 1 && h > 1 {
+		termbox.SetCell(x, y, border.LU, termbox.Attribute(fg.color), termbox.Attribute(bg.color))
+		termbox.SetCell(x+w-1, y, border.RU, termbox.Attribute(fg.color), termbox.Attribute(bg.color))
+		termbox.SetCell(x, y+h-1, border.LD, termbox.Attribute(fg.color), termbox.Attribute(bg.color))
+		termbox.SetCell(x+w-1, y+h-1, border.RD, termbox.Attribute(fg.color), termbox.Attribute(bg.color))
+	}
 }
 
 // Width -

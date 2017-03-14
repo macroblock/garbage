@@ -16,14 +16,16 @@ func main() {
 	scr := conio.NewScreen()
 	utils.Assert(evs != nil, "screen init failed")
 	defer scr.Close()
+
+	scr.ShowCursor(false)
 	//counter := 0
 	var key rune
 	width := scr.Width()
 	height := scr.Height()
 	for key != 27 {
-		scr.Clear('+', conio.ColorBlack, conio.ColorWhite)
-		scr.FillRect(1, 1, width-2, height-2, '.', conio.ColorYellow, conio.ColorRed)
-		scr.FillRect(10, 10, width-20, height-20, '.', conio.ColorBlue, conio.ColorYellow)
+		scr.Clear(' ', conio.ColorBlue, conio.ColorBlack)
+		scr.DrawBorder(0, 0, width, height, conio.Border.Get("Double"), conio.ColorBlue, conio.ColorBlack)
+		scr.DrawBorder(9, 9, width-18, height-18, conio.Border.Get("Single"), conio.ColorYellow, conio.ColorBlack)
 		scr.DrawString(2, 2, "Тестовая string", conio.ColorGreen, conio.ColorDefault)
 		scr.DrawString(3, 5, fmt.Sprintf("key: '%c' code: %d", key, key), conio.ColorYellow, conio.ColorDefault)
 		scr.DrawString(3, 7, fmt.Sprintf("w: '%d' h: %d", width, height), conio.ColorYellow, conio.ColorDefault)
