@@ -94,17 +94,15 @@ loop:
 		switch ev.Type {
 		case termbox.EventInterrupt:
 			break loop
+
 		case termbox.EventResize:
-			{
-				iBuff <- TWindowEvent{ev.Width, ev.Height}
-			}
+			iBuff <- TWindowEvent{ev.Width, ev.Height}
+
 		case termbox.EventKey:
-			{
-				if ev.Ch == 0 {
-					iBuff <- TKeyboardEvent{rune(ev.Key)}
-				} else {
-					iBuff <- TKeyboardEvent{ev.Ch}
-				}
+			if ev.Ch == 0 {
+				iBuff <- TKeyboardEvent{rune(ev.Key)}
+			} else {
+				iBuff <- TKeyboardEvent{ev.Ch}
 			}
 		} // end switch
 	}
