@@ -16,7 +16,7 @@ var (
 var (
 	posX        = 5
 	posY        = 5
-	offsX       = 4
+	offsX       = 1
 	index       = 0
 	numItems    = -1
 	borderNames []string
@@ -27,31 +27,43 @@ func initialize() {
 	numItems = len(borderNames)
 
 	sort.Strings(borderNames)
+
+	conio.Screen().Flush()
+	width = conio.Screen().Width()
+	height = conio.Screen().Height()
+
+	conio.Screen().ShowCursor(false)
 }
 
 func draw() {
 	scr := conio.Screen()
-	borderFg := conio.ColorWhite
-	borderBg := conio.ColorRed
-	captionFg := borderFg
-	captionBg := borderBg
 	winFg := conio.ColorWhite
-	winBg := borderBg
-	textFg := winFg
+	winBg := conio.ColorBlack
+	textFg := conio.ColorCyan
 	textBg := winBg
 
 	scr.Clear(' ', conio.ColorBlue, conio.ColorBlack)
-	scr.DrawString(1, 1, fmt.Sprintf("key: '%c' code: %d", key, key), conio.ColorYellow, conio.ColorDefault)
-	scr.DrawString(1, 2, fmt.Sprintf("w: '%d' h: %d", width, height), conio.ColorYellow, conio.ColorDefault)
+	scr.SetColor(conio.ColorYellow, conio.ColorDefault)
+	scr.DrawString(1, 1, fmt.Sprintf("key: '%c' code: %d", key, key))
+	scr.DrawString(1, 2, fmt.Sprintf("w: '%d' h: %d", width, height))
 
-	scr.DrawBorder(posX-1, posY-1, width-posX*2+2, len(borderNames)+2, conio.BorderMap.Get(borderNames[index]), borderFg, borderBg)
-	scr.FillRect(posX, posY, width-posX*2, len(borderNames), ' ', winFg, winBg)
-	scr.DrawAlignedString(posX, posY-1, width-posX*2, "[ Select border type ]", conio.AlignCenter, captionFg, captionBg)
+	scr.SetColor(winFg, winBg)
+	scr.DrawBorder(posX-1, posY-1, width-posX*2+2, len(borderNames)+2, conio.BorderMap.Get(borderNames[index]))
+	scr.FillRect(posX, posY, width-posX*2, len(borderNames), ' ')
 
+	scr.SetAlignment(conio.AlignCenter)
+	scr.DrawAlignedString(posX, posY-1, width-posX*2, "[ Select border type ]")
+
+	scr.SetAlignment(conio.AlignLeft)
 	for i, name := range borderNames {
-		scr.DrawAlignedString(posX+offsX, posY+i, width-posX*2-offsX, name, conio.AlignLeft, textFg, textBg)
+		scr.SetColor(textFg, textBg)
+		if i == index {
+			scr.InvertColor()
+			scr.FillRect(posX, posY+i, width-posX*2, 1, ' ')
+		}
+		scr.DrawAlignedString(posX+offsX, posY+i, width-posX*2-offsX, name)
 	}
-	scr.DrawAlignedString(posX, posY+index, offsX, " => ", conio.AlignLeft, textFg, textBg)
+	//scr.DrawAlignedString(posX, posY+index, width-posX*2, " => ")
 	//scr.MoveCursor(-10, -10)
 	scr.Flush()
 }
@@ -96,8 +108,6 @@ func main() {
 	scr := conio.NewScreen()
 	utils.Assert(scr != nil, "screen init failed")
 	defer scr.Close()
-
-	scr.ShowCursor(false)
 
 	initialize()
 	for !canClose {

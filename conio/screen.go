@@ -3,8 +3,6 @@ package conio
 import (
 	"garbage/utils"
 
-	"unicode/utf8"
-
 	termbox "github.com/nsf/termbox-go"
 )
 
@@ -22,8 +20,10 @@ const (
 
 // TScreen -
 type TScreen struct {
+	fgc, bgc         TColor
 	cursorX, cursorY int
 	isCursorVisible  bool
+	alignment        TAlignment
 }
 
 // NewScreen -
@@ -33,6 +33,8 @@ func NewScreen() *TScreen {
 	screenInstance = &TScreen{}
 	screenInstance.ShowCursor(true)
 	screenInstance.MoveCursor(0, 0)
+	screenInstance.SetColor(ColorDefault, ColorDefault)
+	screenInstance.SetAlignment(AlignLeft)
 	return screenInstance
 }
 
@@ -42,62 +44,89 @@ func (scr *TScreen) Close() {
 	screenInstance = nil
 }
 
-// DrawString -
-func (scr *TScreen) DrawString(x, y int, s string, fg, bg TColor) {
-	i := 0
-	for _, ch := range s {
-		termbox.SetCell(x+i, y, ch, termbox.Attribute(fg.color), termbox.Attribute(bg.color))
-		i++
+// FgColor -
+func (scr *TScreen) FgColor() TColor {
+	return scr.fgc
+}
+
+// BgColor -
+func (scr *TScreen) BgColor() TColor {
+	return scr.bgc
+}
+
+// SetColor -
+func (scr *TScreen) SetColor(fg, bg TColor) {
+	scr.fgc = fg
+	scr.bgc = bg
+}
+
+// InvertColor -
+func (scr *TScreen) InvertColor() {
+	scr.fgc, scr.bgc = scr.bgc, scr.fgc
+}
+
+// SetFgColor -
+func (scr *TScreen) SetFgColor(fg TColor) {
+	scr.fgc = fg
+}
+
+// SetBgColor -
+func (scr *TScreen) SetBgColor(bg TColor) {
+	scr.bgc = bg
+}
+
+// SetAlignment -
+func (scr *TScreen) SetAlignment(alignment TAlignment) {
+	scr.alignment = alignment
+}
+
+// DrawRune -
+func (scr *TScreen) DrawRune(x, y int, ch rune) {
+	termbox.SetCell(x, y, ch, termbox.Attribute(scr.fgc.color), termbox.Attribute(scr.bgc.color))
+}
+
+func (scr *TScreen) drawRunes(x, y int, runes []rune) {
+	for i, ch := range runes {
+		termbox.SetCell(x+i, y, ch, termbox.Attribute(scr.fgc.color), termbox.Attribute(scr.bgc.color))
 	}
 }
 
+// DrawString -
+func (scr *TScreen) DrawString(x, y int, str string) {
+	runes := []rune(str)
+	scr.drawRunes(x, y, runes)
+}
+
 // DrawAlignedString -
-func (scr *TScreen) DrawAlignedString(x, y, w int, s string, alignment TAlignment, fg, bg TColor) {
-	len := utf8.RuneCountInString(s)
-	if len <= w {
-		switch alignment {
-		case AlignLeft:
-		case AlignRight:
-			x = x + w - len
-		case AlignCenter:
-			x = x + (w-len)/2
-		} // end case
-		scr.DrawString(x, y, s, fg, bg)
-	} else {
-		idx := 0
-		ellPos := x + w - 1
-		_ = ellPos
-		switch alignment {
-		case AlignLeft:
-			len = w
-		case AlignRight:
-			idx = len - w
-			len = w
-			ellPos = x
-		case AlignCenter:
-			len = w
-		} // end case
-		if len > 0 {
-			i := 0
-			for _, ch := range s {
-				if i >= idx+len {
-					break
-				}
-				if i >= idx {
-					termbox.SetCell(x+i-idx, y, ch, termbox.Attribute(fg.color), termbox.Attribute(bg.color))
-				}
-				i++
-			}
-			termbox.SetCell(ellPos, y, '…', termbox.Attribute(fg.color), termbox.Attribute(bg.color))
-		}
+func (scr *TScreen) DrawAlignedString(x, y, w int, str string) {
+	if w <= 0 {
+		return
+	}
+	runes := []rune(str)
+	len := len(runes)
+	var i1, offs int
+	i2 := utils.Min(w, len)
+	ellPos := x + w - 1
+	switch scr.alignment {
+	case AlignRight:
+		i1 = utils.Max(0, len-w)
+		i2 = len
+		offs = utils.Max(0, w-len)
+		ellPos = x
+	case AlignCenter:
+		offs = utils.Max(0, (w-len)/2)
+	} // end switch
+	scr.drawRunes(x+offs, y, runes[i1:i2])
+	if w < len {
+		scr.DrawRune(ellPos, y, '…')
 	}
 }
 
 // FillRect -
-func (scr *TScreen) FillRect(x, y, w, h int, ch rune, fg, bg TColor) {
+func (scr *TScreen) FillRect(x, y, w, h int, ch rune) {
 	for j := 0; j < h; j++ {
 		for i := 0; i < w; i++ {
-			termbox.SetCell(x+i, y+j, ch, termbox.Attribute(fg.color), termbox.Attribute(bg.color))
+			scr.DrawRune(x+i, y+j, ch)
 		}
 	}
 }
@@ -105,24 +134,25 @@ func (scr *TScreen) FillRect(x, y, w, h int, ch rune, fg, bg TColor) {
 // Clear -
 func (scr *TScreen) Clear(ch rune, fg, bg TColor) {
 	//termbox.Clear(termbox.Attribute(fg.color), termbox.Attribute(bg.color))
-	screenInstance.FillRect(0, 0, scr.Width(), scr.Height(), ch, fg, bg)
+	scr.SetColor(fg, bg)
+	scr.FillRect(0, 0, scr.Width(), scr.Height(), ch)
 }
 
 // DrawBorder -
-func (scr *TScreen) DrawBorder(x, y, w, h int, border TBorder, fg, bg TColor) {
+func (scr *TScreen) DrawBorder(x, y, w, h int, border TBorder) {
 	if h > 0 {
-		scr.FillRect(x+1, y, w-2, 1, border.H1, fg, bg)
-		scr.FillRect(x+1, y+h-1, w-2, 1, border.H2, fg, bg)
+		scr.FillRect(x+1, y, w-2, 1, border.H1)
+		scr.FillRect(x+1, y+h-1, w-2, 1, border.H2)
 	}
 	if w > 0 {
-		scr.FillRect(x, y+1, 1, h-2, border.V1, fg, bg)
-		scr.FillRect(x+w-1, y+1, 1, h-2, border.V2, fg, bg)
+		scr.FillRect(x, y+1, 1, h-2, border.V1)
+		scr.FillRect(x+w-1, y+1, 1, h-2, border.V2)
 	}
 	if w > 1 && h > 1 {
-		termbox.SetCell(x, y, border.LU, termbox.Attribute(fg.color), termbox.Attribute(bg.color))
-		termbox.SetCell(x+w-1, y, border.RU, termbox.Attribute(fg.color), termbox.Attribute(bg.color))
-		termbox.SetCell(x, y+h-1, border.LD, termbox.Attribute(fg.color), termbox.Attribute(bg.color))
-		termbox.SetCell(x+w-1, y+h-1, border.RD, termbox.Attribute(fg.color), termbox.Attribute(bg.color))
+		scr.DrawRune(x, y, border.LU)
+		scr.DrawRune(x+w-1, y, border.RU)
+		scr.DrawRune(x, y+h-1, border.LD)
+		scr.DrawRune(x+w-1, y+h-1, border.RD)
 	}
 }
 
