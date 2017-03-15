@@ -143,11 +143,18 @@ func (scr *TScreen) Flush() {
 	termbox.Flush()
 }
 
+func moveCursor(x, y int) {
+	w, h := termbox.Size()
+	if x >= 0 && x < w && y >= 0 && y < h {
+		termbox.SetCursor(x, y)
+	}
+}
+
 // MoveCursor -
 func (scr *TScreen) MoveCursor(x, y int) {
 	scr.cursorX, scr.cursorY = x, y
 	if scr.isCursorVisible {
-		termbox.SetCursor(x, y)
+		moveCursor(x, y)
 	}
 }
 
@@ -155,7 +162,7 @@ func (scr *TScreen) MoveCursor(x, y int) {
 func (scr *TScreen) ShowCursor(enable bool) {
 	scr.isCursorVisible = enable
 	if enable {
-		termbox.SetCursor(scr.cursorX, scr.cursorY)
+		moveCursor(scr.cursorX, scr.cursorY)
 	} else {
 		termbox.SetCursor(-1, -1)
 	}

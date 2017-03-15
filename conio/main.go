@@ -2,6 +2,16 @@ package conio
 
 import termbox "github.com/nsf/termbox-go"
 
+// Screen -
+func Screen() *TScreen {
+	return screenInstance // !!! TODO - multiple screens support
+}
+
+// EventStream -
+func EventStream() *TEventStream {
+	return eventStreamInstance // !!! TODO - multiple eventStream support
+}
+
 // Init - initializes conio
 func Init() error {
 	err := termbox.Init()

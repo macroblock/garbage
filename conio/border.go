@@ -16,18 +16,32 @@ type tBorderMap struct {
 	val map[string]TBorder
 }
 
-// Border -
-var Border tBorderMap
+// BorderMap -
+var BorderMap tBorderMap
 
 func initBorder() {
-	Border.val = make(map[string]TBorder)
-	Border.val["Default"] = TBorder{'+', '-', '+', '|', '|', '+', '-', '+'}
-	Border.val["Single (ASCII)"] = TBorder{'+', '~', '+', '|', '|', '+', '~', '+'}
-	Border.val["Double (ASCII)"] = TBorder{'#', '=', '#', 'N', 'N', '#', '=', '#'}
-	Border.val["Single"] = TBorder{'╭', '─', '╮', '│', '│', '╰', '─', '╯'}
-	Border.val["Double"] = TBorder{'╔', '═', '╗', '║', '║', '╚', '═', '╝'}
+	BorderMap.val = make(map[string]TBorder)
+	BorderMap.val["Default"] = TBorder{'+', '-', '+', '|', '|', '+', '-', '+'}
+	BorderMap.val["Single (ASCII)"] = TBorder{'+', '~', '+', '|', '|', '+', '~', '+'}
+	BorderMap.val["Double (ASCII)"] = TBorder{'#', '=', '#', 'N', 'N', '#', '=', '#'}
+	BorderMap.val["Single"] = TBorder{'┌', '─', '┐', '│', '│', '└', '─', '┘'}
+	BorderMap.val["Double"] = TBorder{'╔', '═', '╗', '║', '║', '╚', '═', '╝'}
+	BorderMap.val["Shadowed (mix)"] = TBorder{'┌', '─', '╖', '│', '║', '╘', '═', '╝'}
+	BorderMap.val["Solid (full block)"] = TBorder{'█', '█', '█', '█', '█', '█', '█', '█'}
+	BorderMap.val["Solid (inner half block)"] = TBorder{'▄', '▄', '▄', '█', '█', '▀', '▀', '▀'}
+	BorderMap.val["Solid (outer half block)"] = TBorder{'█', '▀', '█', '█', '█', '█', '▄', '█'}
 }
 
+// Get -
 func (b *tBorderMap) Get(name string) TBorder {
-	return Border.val[name]
+	return b.val[name]
+}
+
+// Names -
+func (b *tBorderMap) Names() []string {
+	keys := make([]string, 0, len(b.val))
+	for k := range BorderMap.val {
+		keys = append(keys, k)
+	}
+	return keys
 }

@@ -18,23 +18,24 @@ type TWindowEvent struct {
 	Height int
 }
 
-var (
-	isReadEventsStarted = false
-	iBuff               chan interface{}
-)
-
 // TEventStream -
 type TEventStream struct {
 }
+
+var (
+	isReadEventsStarted = false
+	iBuff               chan interface{}
+	eventStreamInstance *TEventStream
+)
 
 // NewEventStream -
 func NewEventStream() *TEventStream {
 	utils.Assert(termbox.IsInit, "conio is not initialized correctly")
 	utils.Assert(iBuff == nil, "only one eventStream instance can be present")
-	evs := &TEventStream{}
+	eventStreamInstance := &TEventStream{}
 	iBuff = make(chan interface{}, 32)
-	evs.Start()
-	return evs
+	eventStreamInstance.Start()
+	return eventStreamInstance
 }
 
 // Close -
