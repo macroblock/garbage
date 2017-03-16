@@ -33,13 +33,17 @@ func initBorder() {
 }
 
 // Get -
-func (b *tBorderMap) Get(name string) TBorder {
-	return b.val[name]
+func (bm *tBorderMap) Get(name string) TBorder {
+	b, ok := bm.val[name]
+	if !ok {
+		b = bm.val["Default"]
+	}
+	return b
 }
 
 // Names -
-func (b *tBorderMap) Names() []string {
-	keys := make([]string, 0, len(b.val))
+func (bm *tBorderMap) Names() []string {
+	keys := make([]string, 0, len(bm.val))
 	for k := range BorderMap.val {
 		keys = append(keys, k)
 	}
