@@ -24,6 +24,7 @@ type TScreen struct {
 	cursorX, cursorY int
 	isCursorVisible  bool
 	alignment        TAlignment
+	border           TBorder
 }
 
 // NewScreen -
@@ -35,6 +36,7 @@ func NewScreen() *TScreen {
 	screenInstance.MoveCursor(0, 0)
 	screenInstance.SetColor(ColorDefault, ColorDefault)
 	screenInstance.SetAlignment(AlignLeft)
+	screenInstance.SelectBorder("Default")
 	return screenInstance
 }
 
@@ -80,6 +82,11 @@ func (scr *TScreen) SetAlignment(alignment TAlignment) {
 	scr.alignment = alignment
 }
 
+// SelectBorder -
+func (scr *TScreen) SelectBorder(name string) {
+	scr.border = BorderMap.Get(name)
+}
+
 // DrawRune -
 func (scr *TScreen) DrawRune(x, y int, ch rune) {
 	termbox.SetCell(x, y, ch, termbox.Attribute(scr.fgc.color), termbox.Attribute(scr.bgc.color))
@@ -99,26 +106,22 @@ func (scr *TScreen) DrawString(x, y int, str string) {
 
 // DrawAlignedString -
 func (scr *TScreen) DrawAlignedString(x, y, w int, str string) {
-	if w <= 0 {
-		return
-	}
 	runes := []rune(str)
 	len := len(runes)
-	var i1, offs int
-	i2 := utils.Min(w, len)
-	ellPos := x + w - 1
+	ellPos := w - 1
+	offs := 0
 	switch scr.alignment {
 	case AlignRight:
-		i1 = utils.Max(0, len-w)
-		i2 = len
-		offs = utils.Max(0, w-len)
-		ellPos = x
+		x += utils.Max(0, w-len)
+		offs = utils.Min(0, w-len)
+		ellPos = 0
 	case AlignCenter:
-		offs = utils.Max(0, (w-len)/2)
-	} // end switch
-	scr.drawRunes(x+offs, y, runes[i1:i2])
+		x += utils.Max(0, (w-len)/2)
+	}
+	seg := utils.IntersectSegment(utils.TSegment{A: 0 - offs, B: 0 + w - offs}, utils.TSegment{A: 0, B: 0 + len})
+	scr.drawRunes(x, y, runes[seg.A:seg.B])
 	if w < len {
-		scr.DrawRune(ellPos, y, '…')
+		scr.DrawRune(x+ellPos, y, '…')
 	}
 }
 
@@ -139,20 +142,20 @@ func (scr *TScreen) Clear(ch rune, fg, bg TColor) {
 }
 
 // DrawBorder -
-func (scr *TScreen) DrawBorder(x, y, w, h int, border TBorder) {
+func (scr *TScreen) DrawBorder(x, y, w, h int) {
 	if h > 0 {
-		scr.FillRect(x+1, y, w-2, 1, border.H1)
-		scr.FillRect(x+1, y+h-1, w-2, 1, border.H2)
+		scr.FillRect(x+1, y, w-2, 1, scr.border.H1)
+		scr.FillRect(x+1, y+h-1, w-2, 1, scr.border.H2)
 	}
 	if w > 0 {
-		scr.FillRect(x, y+1, 1, h-2, border.V1)
-		scr.FillRect(x+w-1, y+1, 1, h-2, border.V2)
+		scr.FillRect(x, y+1, 1, h-2, scr.border.V1)
+		scr.FillRect(x+w-1, y+1, 1, h-2, scr.border.V2)
 	}
 	if w > 1 && h > 1 {
-		scr.DrawRune(x, y, border.LU)
-		scr.DrawRune(x+w-1, y, border.RU)
-		scr.DrawRune(x, y+h-1, border.LD)
-		scr.DrawRune(x+w-1, y+h-1, border.RD)
+		scr.DrawRune(x, y, scr.border.LU)
+		scr.DrawRune(x+w-1, y, scr.border.RU)
+		scr.DrawRune(x, y+h-1, scr.border.LD)
+		scr.DrawRune(x+w-1, y+h-1, scr.border.RD)
 	}
 }
 

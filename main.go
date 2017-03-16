@@ -52,7 +52,8 @@ func draw() {
 	scr.DrawString(1, 2, fmt.Sprintf("w: '%d' h: %d", width, height))
 
 	scr.SetColor(winFg, winBg)
-	scr.DrawBorder(posX-1, posY-1, width-posX*2+2, len(borderNames)+2, conio.BorderMap.Get(borderNames[index]))
+	scr.SelectBorder(borderNames[index])
+	scr.DrawBorder(posX-1, posY-1, width-posX*2+2, len(borderNames)+2)
 	scr.FillRect(posX, posY, width-posX*2, len(borderNames), ' ')
 
 	scr.SetAlignment(conio.AlignCenter)
@@ -67,6 +68,8 @@ func draw() {
 		}
 		scr.DrawAlignedString(posX+offsX, posY+i, width-posX*2-offsX, name)
 	}
+	//scr.SetAlignment(conio.AlignRight)
+	//scr.DrawAlignedString(posX, posY+len(borderNames), width-posX*2, "[ Select border type ]")
 	//scr.DrawAlignedString(posX, posY+index, width-posX*2, " => ")
 	//scr.MoveCursor(-10, -10)
 	scr.Flush()
