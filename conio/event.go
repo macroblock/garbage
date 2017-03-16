@@ -43,7 +43,7 @@ func (ev *TKeyboardEvent) Type() string {
 
 // String -
 func (ev *TKeyboardEvent) String() string {
-	return ev.time.Format("15:04:05.000") + ": " + ev.Type() + " - " + string(ev.ch)
+	return ev.time.Format("15:04:05.000") + ": " + ev.Type() + " - " + strconv.Itoa(ev.key) + " " + string(ev.ch)
 }
 
 // Rune -

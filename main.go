@@ -8,7 +8,8 @@ import (
 )
 
 var (
-	key           rune
+	key           int
+	ch            rune
 	width, height int
 	canClose      bool
 )
@@ -20,7 +21,7 @@ var (
 	index       = 0
 	numItems    = -1
 	borderNames []string
-	logWidth    = 20
+	logWidth    = 40
 	evLog       []string
 )
 
@@ -42,31 +43,40 @@ func initialize() {
 func draw() {
 	scr := conio.Screen()
 	winFg := conio.ColorWhite
-	winBg := conio.ColorBlack
-	textFg := conio.ColorCyan
-	textBg := winBg
+	winBg := conio.ColorRed
+	logFg := conio.ColorDarkGray
+	logBg := conio.ColorDarkGray
 
 	scr.Clear(' ', conio.ColorBlue, conio.ColorBlack)
 	scr.SetColor(conio.ColorYellow, conio.ColorDefault)
-	scr.DrawString(1, 1, fmt.Sprintf("key: '%c' code: %d", key, key))
+	scr.DrawString(1, 0, fmt.Sprintf("char: '%c' %d", ch, ch))
+	scr.DrawString(1, 1, fmt.Sprintf(" key: '%c' %d", key, key))
 	scr.DrawString(1, 2, fmt.Sprintf("w: '%d' h: %d", width, height))
 
-	scr.SetColor(winFg, winBg)
 	scr.SelectBorder(borderNames[index])
-	scr.DrawBorder(posX-1, posY-1, width-posX*2+2, len(borderNames)+2)
-	scr.FillRect(posX, posY, width-posX*2, len(borderNames), ' ')
+	scr.SetColor(logFg, logBg)
+	scr.DrawBorder(width-logWidth-2, 0, logWidth+2, height)
+	scr.FillRect(width-logWidth-1, 1, logWidth, height-2, ' ')
+
+	for i := len(evLog) - 1; i >= 0 && i-len(evLog)+height-1 >= 1; i-- {
+		scr.DrawAlignedString(width-logWidth, i-len(evLog)+height-1, logWidth, evLog[i])
+	}
+
+	scr.SetColor(winFg, winBg)
+	scr.DrawBorder(posX-1, posY-1, width-logWidth+2, len(borderNames)+2)
+	scr.FillRect(posX, posY, width-logWidth, len(borderNames), ' ')
 
 	scr.SetAlignment(conio.AlignCenter)
-	scr.DrawAlignedString(posX, posY-1, width-posX*2, "[ Select border type ]")
+	scr.DrawAlignedString(posX, posY-1, width-logWidth, "[ Select border type ]")
 
 	scr.SetAlignment(conio.AlignLeft)
 	for i, name := range borderNames {
-		scr.SetColor(textFg, textBg)
+		scr.SetColor(winFg, winBg)
 		if i == index {
 			scr.InvertColor()
-			scr.FillRect(posX, posY+i, width-posX*2, 1, ' ')
+			scr.FillRect(posX, posY+i, width-logWidth, 1, ' ')
 		}
-		scr.DrawAlignedString(posX+offsX, posY+i, width-posX*2-offsX, name)
+		scr.DrawAlignedString(posX+offsX, posY+i, width-logWidth-offsX, name)
 	}
 	//scr.SetAlignment(conio.AlignRight)
 	//scr.DrawAlignedString(posX, posY+len(borderNames), width-posX*2, "[ Select border type ]")
@@ -78,9 +88,10 @@ func draw() {
 func handleEvent(ev conio.IEvent) {
 	evLog = append(evLog, ev.String())
 	if kbdEvent, ok := ev.(*conio.TKeyboardEvent); ok {
-		key = kbdEvent.Rune()
+		key = kbdEvent.Key()
+		ch = kbdEvent.Rune()
 		switch key {
-		case 'q':
+		case conio.KeyEscape:
 			canClose = true
 		case conio.KeyUp:
 			index--

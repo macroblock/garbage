@@ -106,6 +106,9 @@ func (scr *TScreen) DrawString(x, y int, str string) {
 
 // DrawAlignedString -
 func (scr *TScreen) DrawAlignedString(x, y, w int, str string) {
+	if w <= 0 {
+		return
+	}
 	runes := []rune(str)
 	len := len(runes)
 	ellPos := w - 1
