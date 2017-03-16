@@ -20,11 +20,15 @@ var (
 	index       = 0
 	numItems    = -1
 	borderNames []string
+	logWidth    = 20
+	evLog       []string
 )
 
 func initialize() {
 	borderNames = conio.BorderMap.Names()
 	numItems = len(borderNames)
+
+	evLog = make([]string, 0)
 
 	sort.Strings(borderNames)
 
@@ -68,11 +72,12 @@ func draw() {
 	scr.Flush()
 }
 
-func handleEvent(ev interface{}) {
-	if kbdEvent, ok := ev.(conio.TKeyboardEvent); ok {
-		key = kbdEvent.Key
+func handleEvent(ev conio.IEvent) {
+	evLog = append(evLog, ev.String())
+	if kbdEvent, ok := ev.(*conio.TKeyboardEvent); ok {
+		key = kbdEvent.Rune()
 		switch key {
-		case conio.KeyEscape:
+		case 'q':
 			canClose = true
 		case conio.KeyUp:
 			index--
@@ -91,9 +96,8 @@ func handleEvent(ev interface{}) {
 		} // end case
 
 	}
-	if winEvent, ok := ev.(conio.TWindowEvent); ok {
-		width = winEvent.Width
-		height = winEvent.Height
+	if winEvent, ok := ev.(*conio.TWindowEvent); ok {
+		width, height = winEvent.Size()
 		conio.Screen().Flush()
 	}
 }

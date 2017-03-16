@@ -7,24 +7,13 @@ import (
 	termbox "github.com/nsf/termbox-go"
 )
 
-// TKeyboardEvent -
-type TKeyboardEvent struct {
-	Key rune
-}
-
-// TWindowEvent -
-type TWindowEvent struct {
-	Width  int
-	Height int
-}
-
 // TEventStream -
 type TEventStream struct {
 }
 
 var (
 	isReadEventsStarted = false
-	iBuff               chan interface{}
+	iBuff               chan IEvent
 	eventStreamInstance *TEventStream
 )
 
@@ -33,7 +22,7 @@ func NewEventStream() *TEventStream {
 	utils.Assert(termbox.IsInit, "conio is not initialized correctly")
 	utils.Assert(iBuff == nil, "only one eventStream instance can be present")
 	eventStreamInstance := &TEventStream{}
-	iBuff = make(chan interface{}, 32)
+	iBuff = make(chan IEvent, 32)
 	eventStreamInstance.Start()
 	return eventStreamInstance
 }
@@ -59,7 +48,7 @@ func (evs *TEventStream) Start() {
 }
 
 // ReadEvent - reads a key. Blocking
-func (evs *TEventStream) ReadEvent() interface{} {
+func (evs *TEventStream) ReadEvent() IEvent {
 	utils.Assert(iBuff != nil, "eventStream is not initialized")
 	return <-iBuff
 }
@@ -91,21 +80,25 @@ func readEvents() {
 	isReadEventsStarted = true
 loop:
 	for {
-		ev := termbox.PollEvent()
-		switch ev.Type {
+		event := termbox.PollEvent()
+		switch event.Type {
 		case termbox.EventInterrupt:
 			break loop
 
 		case termbox.EventResize:
-			iBuff <- TWindowEvent{ev.Width, ev.Height}
+			ev := TWindowEvent{}
+			ev.time = time.Now()
+			ev.width = event.Width
+			ev.height = event.Height
+			iBuff <- &ev
 
 		case termbox.EventKey:
-			if ev.Ch == 0 {
-				iBuff <- TKeyboardEvent{rune(ev.Key)}
-			} else {
-				iBuff <- TKeyboardEvent{ev.Ch}
-			}
-		} // end switch
+			ev := TKeyboardEvent{}
+			ev.time = time.Now()
+			ev.ch = event.Ch
+			ev.key = int(event.Key)
+			iBuff <- &ev
+		}
 	}
 	isReadEventsStarted = false
 }
