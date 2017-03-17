@@ -15,6 +15,10 @@ func EventStream() *TEventStream {
 // Init - initializes conio
 func Init() error {
 	err := termbox.Init()
+	if err != nil {
+		return err
+	}
+	termbox.SetInputMode(termbox.InputEsc | termbox.InputAlt | termbox.InputMouse)
 	return err
 }
 

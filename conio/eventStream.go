@@ -95,10 +95,22 @@ loop:
 		case termbox.EventKey:
 			ev := TKeyboardEvent{}
 			ev.time = time.Now()
-			ev.ch = event.Ch
 			ev.key = int(event.Key)
+			ev.mod = int(event.Mod)
+			ev.ch = event.Ch
 			iBuff <- &ev
+
+		case termbox.EventMouse:
+			ev := TMouseEvent{}
+			ev.time = time.Now()
+			ev.key = int(event.Key)
+			ev.mod = int(event.Mod)
+			ev.x = event.MouseX
+			ev.y = event.MouseY
+			iBuff <- &ev
+
 		}
+
 	}
 	isReadEventsStarted = false
 }

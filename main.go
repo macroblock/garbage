@@ -21,7 +21,7 @@ var (
 	index       = 0
 	numItems    = -1
 	borderNames []string
-	logWidth    = 40
+	logWidth    = 50
 	evLog       []string
 )
 
@@ -38,19 +38,20 @@ func initialize() {
 	height = conio.Screen().Height()
 
 	conio.Screen().ShowCursor(false)
+	conio.Screen().EnableShadow(true)
 }
 
 func draw() {
 	scr := conio.Screen()
 	winFg := conio.ColorWhite
 	winBg := conio.ColorRed
-	logFg := conio.ColorDarkGray
+	logFg := conio.ColorWhite
 	logBg := conio.ColorDarkGray
 
-	scr.Clear(' ', conio.ColorBlue, conio.ColorBlack)
+	scr.Clear('░', conio.ColorWhite, conio.ColorBlack)
 	scr.SetColor(conio.ColorYellow, conio.ColorDefault)
 	scr.DrawString(1, 0, fmt.Sprintf("char: '%c' %d", ch, ch))
-	scr.DrawString(1, 1, fmt.Sprintf(" key: '%c' %d", key, key))
+	scr.DrawString(1, 1, fmt.Sprintf("key: '%c' %d", key, key))
 	scr.DrawString(1, 2, fmt.Sprintf("w: '%d' h: %d", width, height))
 
 	scr.SelectBorder(borderNames[index])
@@ -58,8 +59,11 @@ func draw() {
 	scr.DrawBorder(width-logWidth-2, 0, logWidth+2, height)
 	scr.FillRect(width-logWidth-1, 1, logWidth, height-2, ' ')
 
+	scr.SetAlignment(conio.AlignCenter)
+	scr.DrawAlignedString(width-logWidth-1, 0, logWidth, "[ Event log ]")
+	scr.SetAlignment(conio.AlignLeft)
 	for i := len(evLog) - 1; i >= 0 && i-len(evLog)+height-1 >= 1; i-- {
-		scr.DrawAlignedString(width-logWidth, i-len(evLog)+height-1, logWidth, evLog[i])
+		scr.DrawAlignedString(width-logWidth-1, i-len(evLog)+height-1, logWidth, evLog[i])
 	}
 
 	scr.SetColor(winFg, winBg)
@@ -86,7 +90,7 @@ func draw() {
 }
 
 func handleEvent(ev conio.IEvent) {
-	evLog = append(evLog, ev.String())
+	evLog = append(evLog, fmt.Sprintf("%s %T", ev.String(), ev))
 	if kbdEvent, ok := ev.(*conio.TKeyboardEvent); ok {
 		key = kbdEvent.Key()
 		ch = kbdEvent.Rune()

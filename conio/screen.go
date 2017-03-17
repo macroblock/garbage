@@ -24,6 +24,7 @@ type TScreen struct {
 	cursorX, cursorY int
 	isCursorVisible  bool
 	alignment        TAlignment
+	isShadowEnabled  bool
 	border           TBorder
 }
 
@@ -144,6 +145,26 @@ func (scr *TScreen) Clear(ch rune, fg, bg TColor) {
 	scr.FillRect(0, 0, scr.Width(), scr.Height(), ch)
 }
 
+// EnableShadow -
+func (scr *TScreen) EnableShadow(mode bool) {
+	scr.isShadowEnabled = mode
+}
+
+// SetCellColor -
+func (scr *TScreen) SetCellColor(x, y int, fg, bg TColor) {
+	width, height := termbox.Size()
+	if x < 0 || x >= width {
+		return
+	}
+	if y < 0 || y >= height {
+		return
+	}
+	buff := termbox.CellBuffer()
+	cell := &(buff[y*width+x])
+	cell.Fg = termbox.Attribute(fg.color)
+	cell.Bg = termbox.Attribute(bg.color)
+}
+
 // DrawBorder -
 func (scr *TScreen) DrawBorder(x, y, w, h int) {
 	if h > 0 {
@@ -159,6 +180,14 @@ func (scr *TScreen) DrawBorder(x, y, w, h int) {
 		scr.DrawRune(x+w-1, y, scr.border.RU)
 		scr.DrawRune(x, y+h-1, scr.border.LD)
 		scr.DrawRune(x+w-1, y+h-1, scr.border.RD)
+	}
+	if scr.isShadowEnabled && w > 1 && h > 1 {
+		for i := 1; i < h; i++ {
+			scr.SetCellColor(x+w, y+i, ColorDarkGray, ColorBlack)
+		}
+		for i := 1; i <= w; i++ {
+			scr.SetCellColor(x+i, y+h, ColorDarkGray, ColorBlack)
+		}
 	}
 }
 

@@ -25,6 +25,7 @@ func initBorder() {
 	BorderMap.val["Single (ASCII)"] = TBorder{'+', '~', '+', '|', '|', '+', '~', '+'}
 	BorderMap.val["Double (ASCII)"] = TBorder{'#', '=', '#', 'N', 'N', '#', '=', '#'}
 	BorderMap.val["Single"] = TBorder{'┌', '─', '┐', '│', '│', '└', '─', '┘'}
+	BorderMap.val["Single (rounded)"] = TBorder{'╭', '─', '╮', '│', '│', '╰', '─', '╯'}
 	BorderMap.val["Double"] = TBorder{'╔', '═', '╗', '║', '║', '╚', '═', '╝'}
 	BorderMap.val["Shadowed (mix)"] = TBorder{'┌', '─', '╖', '│', '║', '╘', '═', '╝'}
 	BorderMap.val["Solid (full block)"] = TBorder{'█', '█', '█', '█', '█', '█', '█', '█'}

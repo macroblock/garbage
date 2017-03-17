@@ -25,8 +25,9 @@ func (ev *TEvent) Time() time.Time {
 // TKeyboardEvent -
 type TKeyboardEvent struct {
 	TEvent
-	ch  rune
 	key int
+	mod int
+	ch  rune
 }
 
 // TWindowEvent -
@@ -36,6 +37,15 @@ type TWindowEvent struct {
 	height int
 }
 
+// TMouseEvent -
+type TMouseEvent struct {
+	TEvent
+	key int
+	x   int
+	y   int
+	mod int
+}
+
 // Type -
 func (ev *TKeyboardEvent) Type() string {
 	return "keyboard"
@@ -43,17 +53,22 @@ func (ev *TKeyboardEvent) Type() string {
 
 // String -
 func (ev *TKeyboardEvent) String() string {
-	return ev.time.Format("15:04:05.000") + ": " + ev.Type() + " - " + strconv.Itoa(ev.key) + " " + string(ev.ch)
-}
-
-// Rune -
-func (ev *TKeyboardEvent) Rune() rune {
-	return ev.ch
+	return ev.time.Format("15:04:05.000") + ": " + ev.Type() + " - " + strconv.Itoa(ev.key) + " " + string(ev.ch) + " " + strconv.Itoa(ev.mod)
 }
 
 // Key -
 func (ev *TKeyboardEvent) Key() int {
 	return ev.key
+}
+
+// Mod -
+func (ev *TKeyboardEvent) Mod() int {
+	return ev.mod
+}
+
+// Rune -
+func (ev *TKeyboardEvent) Rune() rune {
+	return ev.ch
 }
 
 // Type -
@@ -69,4 +84,34 @@ func (ev *TWindowEvent) String() string {
 // Size -
 func (ev *TWindowEvent) Size() (int, int) {
 	return ev.width, ev.height
+}
+
+// Type -
+func (ev *TMouseEvent) Type() string {
+	return "mouse"
+}
+
+// String -
+func (ev *TMouseEvent) String() string {
+	return ev.time.Format("15:04:05.000") + ": " + ev.Type() + " - " + strconv.Itoa(ev.x) + "," + strconv.Itoa(ev.y) + " " + strconv.Itoa(ev.mod) + " " + strconv.Itoa(ev.key)
+}
+
+// Key -
+func (ev *TMouseEvent) Key() int {
+	return ev.key
+}
+
+// Mod -
+func (ev *TMouseEvent) Mod() int {
+	return ev.mod
+}
+
+// X -
+func (ev *TMouseEvent) X() int {
+	return ev.x
+}
+
+// Y -
+func (ev *TMouseEvent) Y() int {
+	return ev.y
 }
