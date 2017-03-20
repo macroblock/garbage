@@ -39,4 +39,20 @@ func Close() {
 
 func init() {
 	initBorder()
+	x := TAction{}
+	x.name = "test"
+	x.hotKey = "q"
+	x.description = "test"
+	x.handler = func(ev IEvent) bool {
+		return true
+	}
+
+	y := TKeyboardAction{}
+	y.name = "test kbd"
+	y.hotKey = "1"
+	y.description = "test kbd"
+	y.handler = func(ev TKeyboardEvent) bool { return true }
+
+	_ = x
+	_ = y
 }

@@ -20,17 +20,18 @@ type tBorderMap struct {
 var BorderMap tBorderMap
 
 func initBorder() {
-	BorderMap.val = make(map[string]TBorder)
-	BorderMap.val["Default"] = TBorder{'+', '-', '+', '|', '|', '+', '-', '+'}
-	BorderMap.val["Single (ASCII)"] = TBorder{'+', '~', '+', '|', '|', '+', '~', '+'}
-	BorderMap.val["Double (ASCII)"] = TBorder{'#', '=', '#', 'N', 'N', '#', '=', '#'}
-	BorderMap.val["Single"] = TBorder{'┌', '─', '┐', '│', '│', '└', '─', '┘'}
-	BorderMap.val["Single (rounded)"] = TBorder{'╭', '─', '╮', '│', '│', '╰', '─', '╯'}
-	BorderMap.val["Double"] = TBorder{'╔', '═', '╗', '║', '║', '╚', '═', '╝'}
-	BorderMap.val["Shadowed (mix)"] = TBorder{'┌', '─', '╖', '│', '║', '╘', '═', '╝'}
-	BorderMap.val["Solid (full block)"] = TBorder{'█', '█', '█', '█', '█', '█', '█', '█'}
-	BorderMap.val["Solid (inner half block)"] = TBorder{'▄', '▄', '▄', '█', '█', '▀', '▀', '▀'}
-	BorderMap.val["Solid (outer half block)"] = TBorder{'█', '▀', '█', '█', '█', '█', '▄', '█'}
+	BorderMap.val = map[string]TBorder{
+		"Default":                  TBorder{'+', '-', '+', '|', '|', '+', '-', '+'},
+		"Single (ASCII)":           TBorder{'+', '~', '+', '|', '|', '+', '~', '+'},
+		"Double (ASCII)":           TBorder{'#', '=', '#', 'N', 'N', '#', '=', '#'},
+		"Single":                   TBorder{'┌', '─', '┐', '│', '│', '└', '─', '┘'},
+		"Single (rounded)":         TBorder{'╭', '─', '╮', '│', '│', '╰', '─', '╯'},
+		"Double":                   TBorder{'╔', '═', '╗', '║', '║', '╚', '═', '╝'},
+		"Shadowed (mix)":           TBorder{'┌', '─', '╖', '│', '║', '╘', '═', '╝'},
+		"Solid (full block)":       TBorder{'█', '█', '█', '█', '█', '█', '█', '█'},
+		"Solid (inner half block)": TBorder{'▄', '▄', '▄', '█', '█', '▀', '▀', '▀'},
+		"Solid (outer half block)": TBorder{'█', '▀', '█', '█', '█', '█', '▄', '█'},
+	}
 }
 
 // Get -
@@ -49,4 +50,14 @@ func (bm *tBorderMap) Names() []string {
 		keys = append(keys, k)
 	}
 	return keys
+}
+
+// AddBorder -
+func (bm *tBorderMap) Add(name string, border TBorder) {
+	BorderMap.val[name] = border
+}
+
+// DeleteBorder -
+func (bm *tBorderMap) Delete(name string) {
+	delete(BorderMap.val, name)
 }

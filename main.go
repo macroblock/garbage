@@ -26,6 +26,9 @@ var (
 )
 
 func initialize() {
+	conio.BorderMap.Delete("Solid (full block)")
+	conio.BorderMap.Add("!!! Test !!!", conio.TBorder{'╭', '─', '╮', '│', '█', '╰', '▄', '█'})
+	conio.Screen().SelectBorder("!!! Test !!!")
 	borderNames = conio.BorderMap.Names()
 	numItems = len(borderNames)
 
@@ -54,7 +57,7 @@ func draw() {
 	scr.DrawString(1, 1, fmt.Sprintf("key: '%c' %d", key, key))
 	scr.DrawString(1, 2, fmt.Sprintf("w: '%d' h: %d", width, height))
 
-	scr.SelectBorder(borderNames[index])
+	//scr.SelectBorder(borderNames[index])
 	scr.SetColor(logFg, logBg)
 	scr.DrawBorder(width-logWidth-2, 0, logWidth+2, height)
 	scr.FillRect(width-logWidth-1, 1, logWidth, height-2, ' ')
