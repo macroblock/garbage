@@ -55,4 +55,6 @@ func init() {
 
 	_ = x
 	_ = y
+
+	_ = Ne
 }
