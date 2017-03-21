@@ -32,7 +32,7 @@ type (
 type (
 	TKeyboardAction struct {
 		TAbstractAction
-		handler func(ev TKeyboardEvent) bool
+		handler TKeyboardHandler
 	}
 	// TKeyboardHandler -
 	TKeyboardHandler func(ev TKeyboardEvent) bool
@@ -51,11 +51,6 @@ func (act *TAbstractAction) HotKey() string {
 // Description -
 func (act *TAbstractAction) Description() string {
 	return act.description
-}
-
-// Handler -
-func (act *TAbstractAction) Handler() TEventHandler {
-	return nil
 }
 
 // Do -
@@ -83,15 +78,21 @@ func (act *TKeyboardAction) Do(ev IEvent) bool {
 }
 
 // NewAction -
-func NewAction(handler func(ev IEvent) bool) *TAction {
-	action := &TAction{}
-	action.handler = handler
-	return action
+func NewAction(name, hotKey, descr string, handler TEventHandler) *TAction {
+	act := &TAction{}
+	act.name = name
+	act.hotKey = hotKey
+	act.description = descr
+	act.handler = handler
+	return act
 }
 
 // NewKeyboardAction -
-func NewKeyboardAction(handler func(ev TKeyboardEvent) bool) *TKeyboardAction {
-	action := &TKeyboardAction{}
-	action.handler = handler
-	return action
+func NewKeyboardAction(name, hotKey, descr string, handler TKeyboardHandler) *TKeyboardAction {
+	act := &TKeyboardAction{}
+	act.name = name
+	act.hotKey = hotKey
+	act.description = descr
+	act.handler = handler
+	return act
 }
