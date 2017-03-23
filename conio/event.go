@@ -9,6 +9,7 @@ import (
 type IEvent interface {
 	Time() time.Time
 	Type() string
+	EventKey() string
 	String() string
 }
 
@@ -46,6 +47,11 @@ type TMouseEvent struct {
 	mod int
 }
 
+// EventKey -
+func (ev *TKeyboardEvent) EventKey() string {
+	return string(ev.ch)
+}
+
 // Type -
 func (ev *TKeyboardEvent) Type() string {
 	return "keyboard"
@@ -71,9 +77,14 @@ func (ev *TKeyboardEvent) Rune() rune {
 	return ev.ch
 }
 
+// EventKey -
+func (ev *TWindowEvent) EventKey() string {
+	return "<Resize>"
+}
+
 // Type -
 func (ev *TWindowEvent) Type() string {
-	return "window"
+	return "resize"
 }
 
 // String -
@@ -84,6 +95,11 @@ func (ev *TWindowEvent) String() string {
 // Size -
 func (ev *TWindowEvent) Size() (int, int) {
 	return ev.width, ev.height
+}
+
+// EventKey -
+func (ev *TMouseEvent) EventKey() string {
+	return "<Mouse>"
 }
 
 // Type -

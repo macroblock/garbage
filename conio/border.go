@@ -19,7 +19,7 @@ type tBorderMap struct {
 // BorderMap -
 var BorderMap tBorderMap
 
-func initBorder() {
+func initBorderMap() {
 	BorderMap.val = map[string]TBorder{
 		"Default":                  TBorder{'+', '-', '+', '|', '|', '+', '-', '+'},
 		"Single (ASCII)":           TBorder{'+', '~', '+', '|', '|', '+', '~', '+'},
@@ -45,11 +45,11 @@ func (bm *tBorderMap) Get(name string) TBorder {
 
 // Names -
 func (bm *tBorderMap) Names() []string {
-	keys := make([]string, 0, len(bm.val))
+	names := make([]string, 0, len(bm.val))
 	for k := range BorderMap.val {
-		keys = append(keys, k)
+		names = append(names, k)
 	}
-	return keys
+	return names
 }
 
 // AddBorder -

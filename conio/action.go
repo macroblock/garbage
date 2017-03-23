@@ -6,7 +6,7 @@ import "fmt"
 // IAction -
 type IAction interface {
 	Name() string
-	HotKey() string
+	EventKey() string
 	Description() string
 	Do(ev IEvent) bool
 }
@@ -14,7 +14,7 @@ type IAction interface {
 // TAbstractAction -
 type TAbstractAction struct {
 	name        string
-	hotKey      string
+	eventKey    string
 	description string
 }
 
@@ -43,9 +43,9 @@ func (act *TAbstractAction) Name() string {
 	return act.name
 }
 
-// HotKey -
-func (act *TAbstractAction) HotKey() string {
-	return act.hotKey
+// EventKey -
+func (act *TAbstractAction) EventKey() string {
+	return act.eventKey
 }
 
 // Description -
@@ -78,21 +78,23 @@ func (act *TKeyboardAction) Do(ev IEvent) bool {
 }
 
 // NewAction -
-func NewAction(name, hotKey, descr string, handler TEventHandler) *TAction {
+func NewAction(name, eventKey, descr string, handler TEventHandler) *TAction {
 	act := &TAction{}
 	act.name = name
-	act.hotKey = hotKey
+	act.eventKey = eventKey
 	act.description = descr
 	act.handler = handler
+	ActionMap.Add(act)
 	return act
 }
 
 // NewKeyboardAction -
-func NewKeyboardAction(name, hotKey, descr string, handler TKeyboardHandler) *TKeyboardAction {
+func NewKeyboardAction(name, eventKey, descr string, handler TKeyboardHandler) *TKeyboardAction {
 	act := &TKeyboardAction{}
 	act.name = name
-	act.hotKey = hotKey
+	act.eventKey = eventKey
 	act.description = descr
 	act.handler = handler
+	ActionMap.Add(act)
 	return act
 }
