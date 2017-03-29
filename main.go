@@ -46,40 +46,48 @@ func initialize() {
 		canClose = true
 		return true
 	})
-	conio.NewKeyboardAction("NextItem", "j", "", func(ev conio.TKeyboardEvent) bool {
+	conio.NewKeyboardAction("Next item", "j", "", func(ev conio.TKeyboardEvent) bool {
 		index++
 		index = utils.Min(index, numItems-1)
 		return true
 	})
-	conio.NewKeyboardAction("PrevItem", "k", "", func(ev conio.TKeyboardEvent) bool {
+	conio.NewKeyboardAction("Prev item", "k", "", func(ev conio.TKeyboardEvent) bool {
 		index--
 		index = utils.Max(index, 0)
 		return true
 	})
-	conio.NewKeyboardAction("ShowActionWindow", "a", "", func(ev conio.TKeyboardEvent) bool {
+	conio.NewKeyboardAction("actions/Show", "a", "", func(ev conio.TKeyboardEvent) bool {
 		conio.ActionMap.SetMode("actions")
 		showActions = true
 		actionNames = conio.ActionMap.Names()
 		sort.Strings(actionNames)
 		return true
 	})
-	conio.NewKeyboardAction("HideActionWindow", "actions/a", "", func(ev conio.TKeyboardEvent) bool {
+	conio.NewKeyboardAction("actions/Hide", "actions/a", "", func(ev conio.TKeyboardEvent) bool {
 		conio.ActionMap.SetMode("")
 		showActions = false
 		return true
 	})
-	conio.NewKeyboardAction("ActWinNextItem", "actions/j", "", func(ev conio.TKeyboardEvent) bool {
+	conio.NewKeyboardAction("actions/Next item", "actions/j", "", func(ev conio.TKeyboardEvent) bool {
 		actionIndex++
 		actionIndex = utils.Min(actionIndex, len(actionNames)-1)
 		return true
 	})
-	conio.NewKeyboardAction("ActWinPrevItem", "actions/k", "", func(ev conio.TKeyboardEvent) bool {
+	conio.NewKeyboardAction("actions/Prev item", "actions/k", "", func(ev conio.TKeyboardEvent) bool {
 		actionIndex--
 		actionIndex = utils.Max(actionIndex, 0)
 		return true
 	})
 
 	conio.ActionMap.Apply()
+}
+
+func drawWindow(x, y, w, h int, title string, draw func(x, y, w, h int)) {
+	scr := conio.Screen()
+	scr.DrawBorder(x, y, w, h)
+	scr.FillRect(x+1, y+1, w-2, h-2, ' ')
+	scr.DrawAlignedString(x+1, y, w-2, title)
+	draw(x+1, y+1, w-2, h-2)
 }
 
 func draw() {
@@ -96,63 +104,48 @@ func draw() {
 	scr.DrawString(1, 2, fmt.Sprintf("w: '%d' h: %d", width, height))
 
 	scr.SelectBorder(borderNames[index])
-	scr.SetColor(logFg, logBg)
-	scr.DrawBorder(width-logWidth-2, 0, logWidth+2, height)
-	scr.FillRect(width-logWidth-1, 1, logWidth, height-2, ' ')
 
-	scr.SetAlignment(conio.AlignCenter)
-	scr.DrawAlignedString(width-logWidth-1, 0, logWidth, "[ Event log ]")
-	scr.SetAlignment(conio.AlignLeft)
-	for i := len(evLog) - 1; i >= 0 && i-len(evLog)+height-1 >= 1; i-- {
-		scr.DrawAlignedString(width-logWidth-1, i-len(evLog)+height-1, logWidth, evLog[i])
-	}
+	scr.SetColor(logFg, logBg)
+	drawWindow(width-logWidth-1, 0, logWidth, height, "[ Event Log ]", func(x, y, w, h int) {
+		for i := 0; i < utils.Min(len(evLog)-1, h); i++ {
+			scr.DrawAlignedString(x, y+h-1-i, w, evLog[len(evLog)-1-i])
+		}
+	})
 
 	scr.SetColor(winFg, winBg)
-	scr.DrawBorder(posX-1, posY-1, width-logWidth+2, len(borderNames)+2)
-	scr.FillRect(posX, posY, width-logWidth, len(borderNames), ' ')
-
-	scr.SetAlignment(conio.AlignCenter)
-	scr.DrawAlignedString(posX, posY-1, width-logWidth, "[ Select border type ]")
-
-	scr.SetAlignment(conio.AlignLeft)
-	for i, name := range borderNames {
-		scr.SetColor(winFg, winBg)
-		if i == index {
-			scr.InvertColor()
-			scr.FillRect(posX, posY+i, width-logWidth, 1, ' ')
+	drawWindow(posX, posY, width-logWidth+2, len(borderNames)+2, "[ Select border type ]", func(x, y, w, h int) {
+		for i, name := range borderNames {
+			if i == index {
+				scr.InvertColor()
+				scr.FillRect(x, y+i, w, 1, ' ')
+				scr.DrawAlignedString(x+offsX, y+i, w-offsX, name)
+				scr.InvertColor()
+				continue
+			}
+			scr.DrawAlignedString(x+offsX, y+i, w-offsX, name)
 		}
-		scr.DrawAlignedString(posX+offsX, posY+i, width-logWidth-offsX, name)
-	}
+	})
 
 	if showActions {
-		posX += 10
-		posY += 5
-		w := 50
 		scr.SetColor(conio.ColorWhite, conio.ColorBlack)
-		scr.DrawBorder(posX-1, posY-1, w+2, len(actionNames)+2)
-		scr.FillRect(posX, posY, w, len(actionNames), ' ')
-		scr.SetAlignment(conio.AlignCenter)
-		scr.DrawAlignedString(posX, posY-1, w, "[ Actions ]")
-
-		scr.SetAlignment(conio.AlignLeft)
-		for i, name := range actionNames {
-			scr.SetColor(conio.ColorWhite, conio.ColorBlack)
-			if i == actionIndex {
-				scr.InvertColor()
-				scr.FillRect(posX, posY+i, w, 1, ' ')
+		drawWindow(posX+10, posY+5, 50, len(actionNames)+2, "[ Actions ]", func(x, y, w, h int) {
+			for i, name := range actionNames {
+				if i == actionIndex {
+					scr.InvertColor()
+					scr.FillRect(x, y+i, w, 1, ' ')
+					scr.DrawAlignedString(x+offsX, y+i, w-offsX, name)
+					scr.InvertColor()
+					continue
+				}
+				scr.DrawAlignedString(x+offsX, y+i, w-offsX, name)
 			}
-			scr.DrawAlignedString(posX+offsX, posY+i, w, name)
-		}
-		posX -= 10
-		posY -= 5
+		})
 	}
 
 	scr.Flush()
 }
 
 func handleEvent(ev conio.IEvent) {
-	evLog = append(evLog, fmt.Sprintf("%s %T", ev.String(), ev))
-	conio.HandleEvent(ev)
 	if kbdEvent, ok := ev.(*conio.TKeyboardEvent); ok {
 		key = kbdEvent.Key()
 		ch = kbdEvent.Rune()
@@ -197,6 +190,8 @@ func main() {
 	for !canClose {
 		draw()
 		ev := evs.ReadEvent()
+		evLog = append(evLog, fmt.Sprintf("%s %T", ev.String(), ev))
+		conio.HandleEvent(ev)
 		handleEvent(ev)
 	}
 
