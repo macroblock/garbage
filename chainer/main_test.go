@@ -13,8 +13,8 @@ var (
 		"a-d",
 		"a-d 0-9",
 		"<enter>",
-		"<ctrl>a",
-		"<alt+ctrl+enter>",
+		"<ctrl-a>",
+		"<alt+ctrl+enter> as-zdf <alt+x>",
 	}
 	keyChainParseIncorrect = []string{
 		"<>",
@@ -27,7 +27,7 @@ var (
 func TestParseCorrect(t *testing.T) {
 	for _, v := range keyChainParseCorrect {
 		tree, err := parser.Parse(v)
-		if err != nil {
+		if err == nil {
 			t.Errorf("\n%q\nParse() error: %v\n%v", v, err, ptool.TreeToString(tree, parser.ByID))
 			continue
 		}
