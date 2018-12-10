@@ -11,21 +11,28 @@ import (
 var parserRules = `
 entry           = '' decl {';' decl} $;
 
-decl            = @lval '=' [@options] @expr [@exec]
-                | @ERR_incorrect_declaration;
-options         = '!none!';
-exec            = '{' expr '}';
+decl            = nodeDecl|blockDecl;
 
-expr            = @keepValue | [[@name]#@keep]#[@counter]#( @ident | @or | @and | @term );
+nodeDecl        = @lval @options'=' @expr
+                | @ERR_incorrect_declaration;
+options         = [@optKeepMode] @optSpaceMode [@optRuneSize];
+optKeepMode     = '@';
+optSpaceMode    = '+'|'-';
+optRuneSize     = number;
+
+expr            = exprBody {exprBody};
+exprBody        = [@keep]#[@counter]#( @ident | @select | @group | @term );
 term            = @range | r | str | @eof;
-or              = '[' {@expr} ']';
-and             = '(' {@expr} ')';
+select          = '[' {@expr} ']';
+group           = '(' {@expr} ')';
 keepValue       = '<' {@expr} '>';
 
-lval            = ident;
+lval            =  @ident [str] { ',' @ident [str] };
 name            = ident;
 keep            = '@';
-counter         = '+' | '*' | '?';
+
+counter         = '+' | '*' | '?'| @rangeCounter;
+rangeCounter    =
 
 range           = r '..' r;
 r               = \x27 # !\x27 #@rune # \x27;
@@ -42,7 +49,7 @@ anyRune         = \x00..\xff;
 
                 = {# ' '| \x09 | \x0D | \x0A };
 
-ERR_incorrect_declaration = '' {# !';' # !$ # anyRune} 
+ERR_incorrect_declaration = '' {# !';' # !$ # anyRune}
 
 `
 
