@@ -6,74 +6,136 @@ import (
 	"github.com/macroblock/imed/pkg/ptool"
 )
 
-//
-//
-var parserRules = `
-entry           = '' {';'} decl { ';'{';'} decl} {';'} $;
-
-decl            = nodeDecl|blockDecl;
-
-nodeDecl        = @lval @options'=' @sequence
-                | @ERR_incorrect_declaration;
-options         = [@optKeepMode] [@optSpaceMode] [@optRuneSize];
-optKeepMode     = '@';
-optSpaceMode    = '+'|'-';
-optRuneSize     = number;
-
-blockDecl       = @lval @options '=' str '{' decl '}';
-
-sequence        = expr {expr};
-expr            = ( repeat| @ident | @keepNode | @select | seq | @keepValue | @term );
-term            = @range | r | str | @eof;
-select          = '[' {sequence} ']';
-seq             = '(' {@sequence} ')';
-keepValue       = '<' {sequence} '>';
-keepNode        = '@' # @ident;
-
-lval            =  @ident [str] { ',' @ident [str] };
-name            = ident;
-
-repeat          = @repeat_01 | @repeat_0f | @repeat_1f | @repeat_xy | @repeat_xf | @repeat_x;
-repeat_01       = '?' # repeatList;
-repeat_0f       = '*' # repeatList;
-repeat_1f       = '+' # repeatList;
-repeat_xy       = @number # '-' # @number # repeatList;
-repeat_xf       = @number # ('-'|'+') # repeatList;
-repeat_x        = @number # repeatList;
-repeatList      = @ident | @keepNode | @select | seq | @keepValue | @term;
-
-comment         = '//' # {# !\x0a # !$ # anyRune };
-
-range           = r # '-' # r;
-r               = \x27 # !\x27 #@rune # \x27;
-rune            = anyRune;
-str             = \x27 # @string # \x27;
-string          = {# !\x27 # anyRune };
-ident           = letter#{#letter|digit};
-number          = digit#{#digit};
-
-eof             = '$eof' | '$EOF';
-digit           = '0'..'9';
-letter          = 'a'..'z'|'A'..'Z'|'_';
-anyRune         = \x00..\xff;
-
-                = {# ' ' | \x0a | @comment | \x09 | \x0d  };
-
-ERR_incorrect_declaration = '' '### OFF ###' {# !';' # !$ # anyRune}
-
-`
-
-var parser *ptool.TParser
-
-func init() {
-	var err error
-	builder := ptool.NewBuilder().FromString(parserRules).Entries("entry")
-	parser, err = builder.Build()
-	fmt.Println("=================")
-	fmt.Println(builder.TreeToString())
-	fmt.Println("=================")
-	if err != nil {
-		fmt.Println("\nparser error: ", err)
-		return
+type (
+	// TParser -
+	TParser struct {
+		parser *ptool.TParser
+		tree   *ptool.TNode
+		vars   map[string]*TVar
 	}
+
+	// TVar -
+	TVar struct {
+		name     string
+		label    string
+		entries  []*ptool.TNode
+		resolved bool
+		data     interface{}
+	}
+)
+
+// NewParser -
+func NewParser() *TParser {
+	return &TParser{parser: parser}
+}
+
+// Tree -
+func (o *TParser) Tree() string {
+	if o.parser == nil || o.tree == nil {
+		return "!!! not initialized !!!"
+	}
+	return ptool.TreeToString(o.tree, o.parser.ByID)
+}
+
+// TErrors -
+type TErrors struct {
+	errors []error
+}
+
+// NewErrors -
+func NewErrors() *TErrors {
+	return &TErrors{}
+}
+
+// Add -
+func (o *TErrors) Add(err ...error) {
+	o.errors = append(o.errors, err...)
+}
+
+// Addf -
+func (o *TErrors) Addf(format string, vals ...interface{}) {
+	err := fmt.Errorf(format, vals...)
+	o.errors = append(o.errors, err)
+}
+
+// Get -
+func (o *TErrors) Get() []error {
+	if len(o.errors) == 0 {
+		return nil
+	}
+	return []error(o.errors)
+}
+
+// Parse -
+func (o *TParser) Parse(src string) []error {
+	o.tree = nil
+	tree, err := o.parser.Parse(testProg)
+	if err != nil {
+		return []error{err}
+	}
+	o.tree = tree
+	return nil
+}
+
+func getNode(node *ptool.TNode, typ string) *ptool.TNode {
+	if node == nil {
+		return nil
+	}
+	tid := parser.ByName(typ)
+	for _, v := range node.Links {
+		if v.Type == tid {
+			return v
+		}
+	}
+	return nil
+}
+
+func getValue(node *ptool.TNode) string {
+	if node != nil {
+		return node.Value
+	}
+	return ""
+}
+
+func getNodeValue(node *ptool.TNode, typ string) string {
+	return getValue(getNode(node, typ))
+}
+
+// Build -
+func (o *TParser) Build() []error {
+	vars := map[string]*TVar{}
+
+	var traverse func(*ptool.TNode) *TErrors
+	traverse = func(root *ptool.TNode) *TErrors {
+		errors := NewErrors()
+		for _, node := range root.Links {
+			nodeType := o.parser.ByID(node.Type)
+			switch nodeType {
+			default:
+				errors.Addf("an unsupported element %q", nodeType)
+				continue
+			case "comment":
+			case "nodeDecl", "blockDecl":
+				// variable.typ = strings.TrimSuffix(nodeType, "Decl")
+				lval := getNode(node, "lval")
+				for _, nd := range lval.Links {
+					v := &TVar{
+						name:  getNodeValue(nd, "ident"),
+						label: getNodeValue(nd, "string"),
+					}
+					// fmt.Printf("%q, %q\n", v.name, v.label)
+					if _, exist := vars[v.name]; exist {
+						errors.Addf("duplicate identifier %v", v.name)
+						continue
+					}
+					vars[v.name] = v
+				}
+			} // switch nodeType
+		} // for _, node := range root.Links
+		o.vars = vars
+		return errors
+	}
+
+	errors := traverse(o.tree)
+	return errors.Get()
 }
