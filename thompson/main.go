@@ -44,7 +44,9 @@ func (o *TStringStack) Pop() *string {
 }
 
 var testProg = `
-x = [ a b name@xxxx *( d e f ) g h i ];
+x += a b @c +(d y z) [ e f g ];
+// comment here
+z += asdf;
 `
 
 func main() {

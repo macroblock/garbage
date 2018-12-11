@@ -9,32 +9,42 @@ import (
 //
 //
 var parserRules = `
-entry           = '' decl {';' decl} $;
+entry           = '' {';'} decl { ';'{';'} decl} {';'} $;
 
 decl            = nodeDecl|blockDecl;
 
-nodeDecl        = @lval @options'=' @expr
+nodeDecl        = @lval @options'=' @sequence
                 | @ERR_incorrect_declaration;
-options         = [@optKeepMode] @optSpaceMode [@optRuneSize];
+options         = [@optKeepMode] [@optSpaceMode] [@optRuneSize];
 optKeepMode     = '@';
 optSpaceMode    = '+'|'-';
 optRuneSize     = number;
 
-expr            = exprBody {exprBody};
-exprBody        = [@keep]#[@counter]#( @ident | @select | @group | @term );
+blockDecl       = @lval @options '=' str '{' decl '}';
+
+sequence        = expr {expr};
+expr            = ( repeat| @ident | @keepNode | @select | seq | @keepValue | @term );
 term            = @range | r | str | @eof;
-select          = '[' {@expr} ']';
-group           = '(' {@expr} ')';
-keepValue       = '<' {@expr} '>';
+select          = '[' {sequence} ']';
+seq             = '(' {@sequence} ')';
+keepValue       = '<' {sequence} '>';
+keepNode        = '@' # @ident;
 
 lval            =  @ident [str] { ',' @ident [str] };
 name            = ident;
-keep            = '@';
 
-counter         = '+' | '*' | '?'| @rangeCounter;
-rangeCounter    =
+repeat          = @repeat_01 | @repeat_0f | @repeat_1f | @repeat_xy | @repeat_xf | @repeat_x;
+repeat_01       = '?' # repeatList;
+repeat_0f       = '*' # repeatList;
+repeat_1f       = '+' # repeatList;
+repeat_xy       = @number # '-' # @number # repeatList;
+repeat_xf       = @number # ('-'|'+') # repeatList;
+repeat_x        = @number # repeatList;
+repeatList      = @ident | @keepNode | @select | seq | @keepValue | @term;
 
-range           = r '..' r;
+comment         = '//' # {# !\x0a # !$ # anyRune };
+
+range           = r # '-' # r;
 r               = \x27 # !\x27 #@rune # \x27;
 rune            = anyRune;
 str             = \x27 # @string # \x27;
@@ -42,14 +52,14 @@ string          = {# !\x27 # anyRune };
 ident           = letter#{#letter|digit};
 number          = digit#{#digit};
 
-eof             = '$';
+eof             = '$eof' | '$EOF';
 digit           = '0'..'9';
 letter          = 'a'..'z'|'A'..'Z'|'_';
 anyRune         = \x00..\xff;
 
-                = {# ' '| \x09 | \x0D | \x0A };
+                = {# ' ' | \x0a | @comment | \x09 | \x0d  };
 
-ERR_incorrect_declaration = '' {# !';' # !$ # anyRune}
+ERR_incorrect_declaration = '' '### OFF ###' {# !';' # !$ # anyRune}
 
 `
 
