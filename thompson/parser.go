@@ -1,8 +1,8 @@
 package main
 
 import (
-	"fmt"
-
+	"github.com/macroblock/garbage/thompson/errors"
+	"github.com/macroblock/garbage/thompson/iterator"
 	"github.com/macroblock/imed/pkg/ptool"
 )
 
@@ -37,35 +37,6 @@ func (o *TParser) Tree() string {
 	return ptool.TreeToString(o.tree, o.parser.ByID)
 }
 
-// TErrors -
-type TErrors struct {
-	errors []error
-}
-
-// NewErrors -
-func NewErrors() *TErrors {
-	return &TErrors{}
-}
-
-// Add -
-func (o *TErrors) Add(err ...error) {
-	o.errors = append(o.errors, err...)
-}
-
-// Addf -
-func (o *TErrors) Addf(format string, vals ...interface{}) {
-	err := fmt.Errorf(format, vals...)
-	o.errors = append(o.errors, err)
-}
-
-// Get -
-func (o *TErrors) Get() []error {
-	if len(o.errors) == 0 {
-		return nil
-	}
-	return []error(o.errors)
-}
-
 // Parse -
 func (o *TParser) Parse(src string) []error {
 	o.tree = nil
@@ -77,17 +48,26 @@ func (o *TParser) Parse(src string) []error {
 	return nil
 }
 
-func getNode(node *ptool.TNode, typ string) *ptool.TNode {
+func findNode(node *ptool.TNode, types ...string) *ptool.TNode {
 	if node == nil {
 		return nil
 	}
-	tid := parser.ByName(typ)
-	for _, v := range node.Links {
-		if v.Type == tid {
-			return v
+	for _, typ := range types {
+		tid := parser.ByName(typ)
+		nextLevel := node
+		node = nil
+		for _, v := range nextLevel.Links {
+			if v.Type == tid {
+				node = v
+				break
+			}
 		}
+		if node == nil {
+			return nil
+		}
+		nextLevel = node
 	}
-	return nil
+	return node
 }
 
 func getValue(node *ptool.TNode) string {
@@ -97,17 +77,18 @@ func getValue(node *ptool.TNode) string {
 	return ""
 }
 
-func getNodeValue(node *ptool.TNode, typ string) string {
-	return getValue(getNode(node, typ))
+func getNodeValue(node *ptool.TNode, types ...string) string {
+	return getValue(findNode(node, types...))
 }
 
 // Build -
 func (o *TParser) Build() []error {
 	vars := map[string]*TVar{}
 
-	var traverse func(*ptool.TNode) *TErrors
-	traverse = func(root *ptool.TNode) *TErrors {
-		errors := NewErrors()
+	var traverseExpr func(*ptool.TNode) *errors.TErrors
+	var traverse func(*ptool.TNode) *errors.TErrors
+	traverse = func(root *ptool.TNode) *errors.TErrors {
+		errors := errors.NewErrors()
 		for _, node := range root.Links {
 			nodeType := o.parser.ByID(node.Type)
 			switch nodeType {
@@ -117,23 +98,48 @@ func (o *TParser) Build() []error {
 			case "comment":
 			case "nodeDecl", "blockDecl":
 				// variable.typ = strings.TrimSuffix(nodeType, "Decl")
-				lval := getNode(node, "lval")
-				for _, nd := range lval.Links {
+				it := iterator.New(node, o.parser)
+				it.FindFirst("lval").ForEach(func(it *iterator.Type) {
 					v := &TVar{
-						name:  getNodeValue(nd, "ident"),
-						label: getNodeValue(nd, "string"),
+						name:  it.FindFirst("ident").Value(),
+						label: it.FindFirst("string").Value(),
 					}
-					// fmt.Printf("%q, %q\n", v.name, v.label)
 					if _, exist := vars[v.name]; exist {
 						errors.Addf("duplicate identifier %v", v.name)
-						continue
+						return
 					}
 					vars[v.name] = v
-				}
+				})
+				it.FindNext("options")
+				it.FindNext("sequence")
+				e := traverseExpr(it.Node())
+				errors.Add(e.Get()...)
+				// lval := findNode(node, "lval")
+				// options := findNode(node, "options")
+				// sequence := findNode(node, "sequence")
+				// _ = options
+				// e := traverseExpr(sequence)
+				// errors.Add(e.Get()...)
+				// for _, nd := range lval.Links {
+				// 	v := &TVar{
+				// 		name:  getNodeValue(nd, "ident"),
+				// 		label: getNodeValue(nd, "string"),
+				// 	}
+				// 	// fmt.Printf("%q, %q\n", v.name, v.label)
+				// 	if _, exist := vars[v.name]; exist {
+				// 		errors.Addf("duplicate identifier %v", v.name)
+				// 		continue
+				// 	}
+				// 	vars[v.name] = v
+				// }
 			} // switch nodeType
 		} // for _, node := range root.Links
 		o.vars = vars
 		return errors
+	}
+
+	traverseExpr = func(root *ptool.TNode) *errors.TErrors {
+		return nil
 	}
 
 	errors := traverse(o.tree)
