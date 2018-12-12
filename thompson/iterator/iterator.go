@@ -1,6 +1,8 @@
 package iterator
 
 import (
+	"fmt"
+
 	"github.com/macroblock/imed/pkg/ptool"
 )
 
@@ -45,6 +47,17 @@ func (o *Type) Next() *Type {
 	return o
 }
 
+// Enter -
+func (o *Type) Enter() *Type {
+	if o == nil || o.node == nil {
+		return nil
+	}
+	o.root = o.node
+	o.node = nil
+	o.idx = -1
+	return o
+}
+
 // FindFirst -
 func (o *Type) FindFirst(item interface{}) *Type {
 	if o == nil {
@@ -70,6 +83,7 @@ func (o *Type) ForEach(fn func(*Type)) *Type {
 		return o
 	}
 	for it := New(o.node, o.parser).First(); it.Node() != nil; it.Next() {
+		fmt.Println("val:\n", it.node.Links, it)
 		fn(it)
 	}
 	return o

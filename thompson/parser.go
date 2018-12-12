@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/macroblock/garbage/thompson/errors"
 	"github.com/macroblock/garbage/thompson/iterator"
 	"github.com/macroblock/imed/pkg/ptool"
@@ -100,10 +102,14 @@ func (o *TParser) Build() []error {
 				// variable.typ = strings.TrimSuffix(nodeType, "Decl")
 				it := iterator.New(node, o.parser)
 				it.FindFirst("lval").ForEach(func(it *iterator.Type) {
+					it.Enter().First()
+					// fmt.Printf("---%v\n", o.parser.ByID(it.Node().Type))
+
 					v := &TVar{
 						name:  it.FindFirst("ident").Value(),
 						label: it.FindFirst("string").Value(),
 					}
+					fmt.Printf("%q %q\n", v.name, v.label)
 					if _, exist := vars[v.name]; exist {
 						errors.Addf("duplicate identifier %v", v.name)
 						return

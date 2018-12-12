@@ -47,7 +47,7 @@ var testProg = `
 x += a b @c +(d y z) [ e f g ];
 // comment here
 z += asdf;
-a 'test1', x 'test2', z 'test3'+= a b c;
+a 'test1', x 'test2', z 'test3' ,u 'other' += a b c;
 `
 
 func main() {
