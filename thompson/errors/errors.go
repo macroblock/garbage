@@ -13,8 +13,12 @@ func NewErrors() *TErrors {
 }
 
 // Add -
-func (o *TErrors) Add(err ...error) {
-	o.errors = append(o.errors, err...)
+func (o *TErrors) Add(errors ...error) {
+	for _, err := range errors {
+		if err != nil {
+			o.errors = append(o.errors, err)
+		}
+	}
 }
 
 // Addf -

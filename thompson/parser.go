@@ -11,9 +11,9 @@ import (
 type (
 	// TParser -
 	TParser struct {
-		parser *ptool.TParser
-		tree   *ptool.TNode
-		vars   map[string]*TVar
+		parser  *ptool.TParser
+		tree    *ptool.TNode
+		symbols *TSymbolTable
 	}
 
 	// TVar -
@@ -24,7 +24,32 @@ type (
 		resolved bool
 		data     interface{}
 	}
+
+	// TSymbolTable -
+	TSymbolTable struct {
+		data map[string]*TVar
+	}
 )
+
+// NewVar -
+func NewVar(name, label string, entry *ptool.TNode) *TVar {
+	return &TVar{name: name, label: label, entries: []*ptool.TNode{entry}}
+}
+
+// NewSymbolTable -
+func NewSymbolTable() *TSymbolTable {
+	return &TSymbolTable{data: map[string]*TVar{}}
+}
+
+// Add -
+func (o *TSymbolTable) Add(name, label string) error {
+	if _, exists := o.data[name]; exists {
+		return fmt.Errorf("duplicate identifier %v", name)
+	}
+	fmt.Printf("symbol has been added: %q %q\n", name, label)
+	o.data[name] = NewVar(name, label, nil)
+	return nil
+}
 
 // NewParser -
 func NewParser() *TParser {
@@ -72,20 +97,9 @@ func findNode(node *ptool.TNode, types ...string) *ptool.TNode {
 	return node
 }
 
-func getValue(node *ptool.TNode) string {
-	if node != nil {
-		return node.Value
-	}
-	return ""
-}
-
-func getNodeValue(node *ptool.TNode, types ...string) string {
-	return getValue(findNode(node, types...))
-}
-
 // Build -
 func (o *TParser) Build() []error {
-	vars := map[string]*TVar{}
+	symbols := NewSymbolTable()
 
 	var traverseExpr func(*ptool.TNode) *errors.TErrors
 	var traverse func(*ptool.TNode) *errors.TErrors
@@ -101,20 +115,21 @@ func (o *TParser) Build() []error {
 			case "nodeDecl", "blockDecl":
 				// variable.typ = strings.TrimSuffix(nodeType, "Decl")
 				it := iterator.New(node, o.parser)
-				it.FindFirst("lval").ForEach(func(it *iterator.Type) {
-					it.Enter().First()
+				n := 0
+				// fmt.Printf("x node name %q\n%v\n", it.Name(), it)
+				it.FindNext("lval")
+				// fmt.Printf("y node name %q\n%v\n", it.Name(), it)
+				it.FindNext("lval").ForEach(func(it *iterator.TNodeIterator) {
+					n++
+					fmt.Printf("cycle: %v\n", n)
+					it.Enter()
 					// fmt.Printf("---%v\n", o.parser.ByID(it.Node().Type))
-
-					v := &TVar{
-						name:  it.FindFirst("ident").Value(),
-						label: it.FindFirst("string").Value(),
-					}
-					fmt.Printf("%q %q\n", v.name, v.label)
-					if _, exist := vars[v.name]; exist {
-						errors.Addf("duplicate identifier %v", v.name)
-						return
-					}
-					vars[v.name] = v
+					err := symbols.Add(
+						it.FindNext("ident").Value(),
+						it.FindNext("string").Value(),
+					)
+					errors.Add(err)
+					// fmt.Printf("%q %q\n", v.name, v.label)
 				})
 				it.FindNext("options")
 				it.FindNext("sequence")
@@ -140,7 +155,7 @@ func (o *TParser) Build() []error {
 				// }
 			} // switch nodeType
 		} // for _, node := range root.Links
-		o.vars = vars
+		o.symbols = symbols
 		return errors
 	}
 
