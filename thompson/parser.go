@@ -19,6 +19,7 @@ type (
 	TVar struct {
 		name     string
 		label    string
+		options  *tOptions
 		entries  []*ptool.TNode
 		resolved bool
 		data     interface{}
@@ -27,6 +28,15 @@ type (
 	// TSymbolTable -
 	TSymbolTable struct {
 		data map[string]*TVar
+	}
+
+	tOptions struct {
+		skipSpace bool
+		runeSize  int
+		alwayKeep bool
+	}
+
+	tSequence struct {
 	}
 )
 
@@ -100,9 +110,13 @@ func findNode(node *ptool.TNode, types ...string) *ptool.TNode {
 func (o *TParser) Build() []error {
 	symbols := NewSymbolTable()
 
-	var traverseExpr func(*ptool.TNode) *errors.TErrors
-	var traverse func(*ptool.TNode) *errors.TErrors
-	traverse = func(root *ptool.TNode) *errors.TErrors {
+	var (
+		parse     func(*ptool.TNode) *errors.TErrors
+		parseDecl func(*ptool.TNode) *errors.TErrors
+		parseLVal func(*ptool.TNode) *errors.TErrors
+		parseExpr func(*ptool.TNode) *errors.TErrors
+	)
+	parse = func(root *ptool.TNode) *errors.TErrors {
 		errors := errors.NewErrors()
 		for _, node := range root.Links {
 			nodeType := o.parser.ByID(node.Type)
@@ -112,50 +126,64 @@ func (o *TParser) Build() []error {
 				continue
 			case "comment":
 			case "nodeDecl", "blockDecl":
-				it := NewNodeIterator(node, o.parser)
-				it.Next("lval")
-				it.ForEach(func(i *TNodeIterator) {
-					// i.Enter()
-					err := symbols.Add(
-						// i.Next("ident").Value(),
-						// i.Next("string").Value(),
-						i.Find("var", "ident").Value(),
-						i.Find("var", "string").Value(),
-					)
-					errors.Add(err)
-				})
-				it.Next("options")
-				it.Next("sequence")
-				e := traverseExpr(it.Node())
-				errors.Add(e.Get()...)
-				// lval := findNode(node, "lval")
-				// options := findNode(node, "options")
-				// sequence := findNode(node, "sequence")
-				// _ = options
-				// e := traverseExpr(sequence)
-				// errors.Add(e.Get()...)
-				// for _, nd := range lval.Links {
-				// 	v := &TVar{
-				// 		name:  getNodeValue(nd, "ident"),
-				// 		label: getNodeValue(nd, "string"),
-				// 	}
-				// 	// fmt.Printf("%q, %q\n", v.name, v.label)
-				// 	if _, exist := vars[v.name]; exist {
-				// 		errors.Addf("duplicate identifier %v", v.name)
-				// 		continue
-				// 	}
-				// 	vars[v.name] = v
-				// }
-			} // switch nodeType
+				errs := parseDecl(node)
+				errors.Add(errs.Get()...)
+			}
 		} // for _, node := range root.Links
-		o.symbols = symbols
 		return errors
 	}
 
-	traverseExpr = func(root *ptool.TNode) *errors.TErrors {
+	parseDecl = func(root *ptool.TNode) *errors.TErrors {
+		errors := errors.NewErrors()
+		for _, node := range root.Links {
+			nodeType := o.parser.ByID(node.Type)
+			switch nodeType {
+			default:
+				errors.Addf("an unsupported element %q", nodeType)
+				continue
+			case "comment":
+			case "lval":
+				errs := parseLVal(node)
+				errors.Add(errs.Get()...)
+			case "options":
+			case "sequence":
+				errs := parseExpr(node)
+				errors.Add(errs.Get()...)
+			}
+		}
+		return errors
+	}
+
+	parseLVal = func(root *ptool.TNode) *errors.TErrors {
+		errors := errors.NewErrors()
+		for _, node := range root.Links {
+			nodeType := o.parser.ByID(node.Type)
+			switch nodeType {
+			default:
+				errors.Addf("an unsupported element %q", nodeType)
+				continue
+			case "comment":
+			case "var":
+				it := NewNodeIterator(node, o.parser)
+				name := it.Accept("ident").Value()
+				label := it.Accept("string").Value()
+				// name := node.Links[0].Value
+				// label := ""
+				// if len(node.Links) > 1 {
+				// 	label = node.Links[1].Value
+				// }
+				// fmt.Println(name, node)
+				err := symbols.Add(name, label)
+				errors.Add(err)
+			}
+		}
+		return errors
+	}
+
+	parseExpr = func(root *ptool.TNode) *errors.TErrors {
 		return nil
 	}
 
-	errors := traverse(o.tree)
+	errors := parse(o.tree)
 	return errors.Get()
 }

@@ -49,7 +49,7 @@ r               = \x27 # !\x27 #@rune # \x27;
 rune            = anyRune;
 str             = \x27 # @string # \x27;
 string          = {# !\x27 # anyRune };
-ident           = letter#{#letter|digit};
+ident           = (letter|'$')#{#letter|digit};
 number          = digit#{#digit};
 
 eof             = '$eof' | '$EOF';

@@ -3,7 +3,15 @@ package main
 import (
 	"fmt"
 
+	"github.com/macroblock/imed/pkg/misc"
+
 	"github.com/macroblock/imed/pkg/ptool"
+	"github.com/macroblock/imed/pkg/zlog/loglevel"
+	"github.com/macroblock/imed/pkg/zlog/zlog"
+)
+
+var (
+	log = zlog.Instance("main")
 )
 
 type (
@@ -51,6 +59,8 @@ a 'test1', x 'test2', z 'test3' ,u 'other' += a b c;
 `
 
 func main() {
+	log.Add(misc.NewAnsiLogger(loglevel.All, ""))
+
 	if parser == nil {
 		return
 	}
