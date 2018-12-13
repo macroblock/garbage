@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/macroblock/garbage/thompson/errors"
-	"github.com/macroblock/garbage/thompson/iterator"
 	"github.com/macroblock/imed/pkg/ptool"
 )
 
@@ -113,26 +112,20 @@ func (o *TParser) Build() []error {
 				continue
 			case "comment":
 			case "nodeDecl", "blockDecl":
-				// variable.typ = strings.TrimSuffix(nodeType, "Decl")
-				it := iterator.New(node, o.parser)
-				n := 0
-				// fmt.Printf("x node name %q\n%v\n", it.Name(), it)
-				it.FindNext("lval")
-				// fmt.Printf("y node name %q\n%v\n", it.Name(), it)
-				it.FindNext("lval").ForEach(func(it *iterator.TNodeIterator) {
-					n++
-					fmt.Printf("cycle: %v\n", n)
-					it.Enter()
-					// fmt.Printf("---%v\n", o.parser.ByID(it.Node().Type))
+				it := NewNodeIterator(node, o.parser)
+				it.Next("lval")
+				it.ForEach(func(i *TNodeIterator) {
+					// i.Enter()
 					err := symbols.Add(
-						it.FindNext("ident").Value(),
-						it.FindNext("string").Value(),
+						// i.Next("ident").Value(),
+						// i.Next("string").Value(),
+						i.Find("var", "ident").Value(),
+						i.Find("var", "string").Value(),
 					)
 					errors.Add(err)
-					// fmt.Printf("%q %q\n", v.name, v.label)
 				})
-				it.FindNext("options")
-				it.FindNext("sequence")
+				it.Next("options")
+				it.Next("sequence")
 				e := traverseExpr(it.Node())
 				errors.Add(e.Get()...)
 				// lval := findNode(node, "lval")
