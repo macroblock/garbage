@@ -2,83 +2,131 @@ package zlog
 
 import (
 	"fmt"
+	"reflect"
+	"strings"
 	"time"
 )
 
-type node struct {
-	state   Filter
-	loggers []*Logger
-}
-
 // Log -
 type Log struct {
-	node *node
-	name string
+	state   Filter
+	loggers []ILogger
+	name    string
 }
 
 // NewLog -
 func NewLog(name string) *Log {
-	return &Log{name: name, node: &node{}}
+	return &Log{name: name}
 }
 
 // Instance -
-func Instance(name string) *Log {
-	ret := *defaultLog
-	ret.name = name
-	return &ret
+func Instance() *Log {
+	return defaultLog
+}
+
+// Close -
+func Close() error {
+	fmt.Println("  ")
+	return nil
 }
 
 // Add -
-func (o *Log) Add(loggers ...*Logger) {
+func (o *Log) Add(loggers ...ILogger) {
 	for _, v := range loggers {
 		if v != nil {
-			o.node.loggers = append(o.node.loggers, v)
+			o.loggers = append(o.loggers, v)
 		}
 	}
 }
 
+// Panic -
+func (o *Log) Panic(cause interface{}, msg ...interface{}) {
+	o.Log(LevelPanic, cause, msg...)
+}
+
+// Panicf -
+func (o *Log) Panicf(cause interface{}, format string, msg ...interface{}) {
+	o.Logf(LevelPanic, cause, format, msg...)
+}
+
+// Critical -
+func (o *Log) Critical(cause interface{}, msg ...interface{}) {
+	o.Log(LevelCritical, cause, msg...)
+}
+
+// Criticalf -
+func (o *Log) Criticalf(cause interface{}, format string, msg ...interface{}) {
+	o.Logf(LevelCritical, cause, format, msg...)
+}
+
+// Error -
+func (o *Log) Error(cause interface{}, msg ...interface{}) {
+	o.Log(LevelError, cause, msg...)
+}
+
+// Errorf -
+func (o *Log) Errorf(cause interface{}, format string, msg ...interface{}) {
+	o.Logf(LevelError, cause, format, msg...)
+}
+
 // Log -
-func (o *Log) Log(level Level, resetFilter Filter, err error, text string) {
-	if text == "" {
-		if err == nil {
-			return
-		}
-		text = err.Error()
-		err = nil
+func (o *Log) Log(level Level, cause interface{}, message ...interface{}) {
+	c, ok := getCause(cause)
+	if !ok {
+		return
+	}
+	msg := fmt.Sprint(message...)
+	o.log(level, c, msg)
+}
+
+// Logf -
+func (o *Log) Logf(level Level, cause interface{}, format string, message ...interface{}) {
+	c, ok := getCause(cause)
+	if !ok {
+		return
+	}
+	msg := fmt.Sprintf(format, message...)
+	o.log(level, c, msg)
+}
+
+func (o *Log) log(level Level, cause string, msg string) {
+	if len(msg) == 0 && len(cause) == 0 {
+		return
 	}
 
-	formatParams := FormatParams{
-		Time:       time.Now(),
-		LogLevel:   level,
-		Text:       text,
-		Error:      err,
-		State:      o.node.state,
-		ModuleName: o.name,
+	if len(msg) == 0 {
+		msg = cause
+		cause = "" //cause[:0]
 	}
 
-	o.node.state &^= resetFilter
-	o.node.state |= level.Only()
+	info := LogInfo{
+		Level:   level,
+		Cause:   cause,
+		Message: msg,
+		Time:    time.Now(),
+		State:   o.state,
+		LogName: o.name,
+	}
+	fillCallInfo(&info)
 
-	for _, logger := range o.node.loggers {
-		if level.NotIn(logger.Filter()) {
+	// o.state &^= reset
+	o.state |= level.Only()
+
+	for _, logger := range o.loggers {
+		if !logger.Admit(level.Only(), info.PackageName) {
 			continue
 		}
+		msg := logger.Format(&info)
 
-		// formatParams.Format = logger.Format()
-		// msg := logger.Formatter(formatParams)
-		msg := formatMessage(formatParams)
-		if _, err := logger.Writer().Write([]byte(msg)); err != nil {
+		if _, err := logger.Write([]byte(msg)); err != nil {
 			// TODO: smarter
 			fmt.Println(err)
 		}
 	}
-	if level == levelPanic {
-		panic(text)
-	}
-}
 
-func formatMessage(fp *FormatParams) string {
-	return fmt.Sprintf("%v %v %v\n    %v\n", fp.Time, fp.LogLevel, fp.Text, fp.Error)
+	if level == LevelPanic {
+		panic(msg)
+	}
 }
 
 // String -
@@ -89,3 +137,44 @@ func formatMessage(fp *FormatParams) string {
 // 	}
 // 	return strings.Join(sl, "\n")
 // }
+
+func getCause(cause interface{}) (string, bool) {
+	ret := ""
+	ok := true
+	switch v := cause.(type) {
+	default:
+		// slices
+		if reflect.TypeOf(cause).Kind() == reflect.Slice {
+			v := reflect.ValueOf(cause)
+			if v.Len() == 0 {
+				return "", false
+			}
+			slice := make([]string, v.Len())
+			for i := 0; i < v.Len(); i++ {
+				slice = append(slice, fmt.Sprint(v.Index(i)))
+			}
+			ret = strings.Join(slice, "\n")
+			return ret, true
+		}
+	case nil:
+		return "", false
+	case bool:
+		ok = v
+	case int, int8, int16, int32, int64,
+		uint, uint8, uint16, uint32, uint64:
+		if v == 0 {
+			return "", false
+		}
+	case error:
+		ret = v.Error()
+		if len(ret) == 0 {
+			return "", false
+		}
+	case string:
+		if len(v) == 0 {
+			return "", false
+		}
+		ret = v
+	}
+	return ret, ok
+}

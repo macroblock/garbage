@@ -1,5 +1,7 @@
 package zlog
 
+import "strings"
+
 // Level -
 type Level int
 
@@ -10,21 +12,29 @@ const (
 	LevelCritical
 	LevelError
 	LevelWarning
-	LevelReset
 	LevelNotice
 	LevelInfo
 	LevelDebug
 	levelTooHigh
 )
 
-var levelToStr = []string{"PNC", "CRT", "ERR", "WRN", "RESET", "NTC", "INF", "DBG", "UNSUPPORTED"}
+var levelToStr = []string{"PANIC", "CRITICAL", "ERROR", "WARNING", "NOTICE", "INFO", "DEBUG", "UNSUPPORTED"}
+var filterToStr = []string{"PNC", "CRT", "ERR", "WRN", "NTC", "INF", "DBG"}
 
 // Filter -
 type Filter uint
 
 // General loglevel filters
 const (
-	All Filter = 1<<uint(levelTooHigh) - 1
+	FilterNone Filter = 1<<iota - 1
+	FilterPanic
+	FilterCritical
+	FilterError
+	FilterWarning
+	FilterNotice
+	FilterInfo
+	FilterDebug
+	FilterAll // Filter  = 1<<uint(levelTooHigh) - 1
 )
 
 // Only -
@@ -54,4 +64,34 @@ func (o Level) String() string {
 		o = levelTooHigh
 	}
 	return levelToStr[o]
+}
+
+// Include -
+func (o Filter) Include(f Filter) Filter { return o | f }
+
+// Exclude -
+func (o Filter) Exclude(f Filter) Filter { return o &^ f }
+
+// Intersect -
+func (o Filter) Intersect(f Filter) Filter { return o & f }
+
+// String -
+func (o Filter) String() string {
+	if o == FilterNone {
+		return ""
+	}
+	sl := []string{}
+	i := 0
+	x := o & FilterAll
+	for x != 0 {
+		if x&1 != 0 {
+			sl = append(sl, filterToStr[i])
+		}
+		i++
+		x = x >> 1
+	}
+	if len(sl) == 0 {
+		return levelToStr[levelTooHigh]
+	}
+	return strings.Join(sl, "|")
 }
