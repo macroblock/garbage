@@ -2,9 +2,6 @@ package main
 
 import (
 	"fmt"
-	"path"
-	"runtime"
-	"strings"
 
 	"github.com/macroblock/imed/pkg/ptool"
 )
@@ -20,13 +17,13 @@ type TNodeIterator struct {
 }
 
 const (
-	errInvalidObject = "iterator is invalid"
+	errInvalidObject = " invalid iterator"
 )
 
 // NewNodeIterator -
 func NewNodeIterator(root *ptool.TNode, parser *ptool.TParser) *TNodeIterator {
 	if root == nil || 0 > len(root.Links)-1 || parser == nil {
-		log.Error(true, "NewNodeIterator: invalid parameteres")
+		log.Error(true, "invalid parameteres")
 		return nil
 	}
 	o := &TNodeIterator{root: root, ignore: []int{}, parser: parser}
@@ -37,7 +34,7 @@ func NewNodeIterator(root *ptool.TNode, parser *ptool.TParser) *TNodeIterator {
 // Clone -
 func (o *TNodeIterator) Clone() *TNodeIterator {
 	if o == nil || o.root == nil {
-		log.Errorf(true, "%v%v", "Clone: ", errInvalidObject)
+		log.Error(true, errInvalidObject)
 		return nil
 	}
 	ret := &TNodeIterator{}
@@ -47,13 +44,12 @@ func (o *TNodeIterator) Clone() *TNodeIterator {
 
 // Enter -
 func (o *TNodeIterator) Enter() *TNodeIterator {
-	errPrefix := "Enter: "
 	if o == nil || o.root == nil {
-		log.Errorf(true, "%v%v", errPrefix, errInvalidObject)
+		log.Error(true, errInvalidObject)
 		return nil
 	}
 	if o.retNode == nil {
-		log.Errorf(true, "%vinvalid operation", errPrefix)
+		log.Error(true, "invalid operation")
 		return nil
 	}
 	o.root = o.retNode
@@ -61,7 +57,7 @@ func (o *TNodeIterator) Enter() *TNodeIterator {
 	o.index = 0
 	if o.index > len(o.root.Links)-1 {
 		o.root = nil
-		log.Errorf(true, "%vnode has no links", errPrefix)
+		log.Error(true, "node has no links")
 		return nil
 	}
 	o.inNode = o.root.Links[o.index]
@@ -70,88 +66,124 @@ func (o *TNodeIterator) Enter() *TNodeIterator {
 
 // AutoIgnore -
 func (o *TNodeIterator) AutoIgnore(items ...interface{}) *TNodeIterator {
-	errPrefix := "AutoIgnore: "
 	if o == nil || o.root == nil {
-		log.Errorf(true, "%v%v", errPrefix, errInvalidObject)
+		log.Error(true, errInvalidObject)
 		return nil
 	}
 	ok := false
-	o.ignore, ok = itemsToIntSlice(errPrefix, o.parser, items...)
+	o.ignore, ok = itemsToIntSlice(o.parser, items...)
 	if !ok {
 		o.root = nil
 		return nil
 	}
 	return o
 }
-func retrieveCallInfo() {
-	pc, file, line, _ := runtime.Caller(1)
-	_, fileName := path.Split(file)
-	name := runtime.FuncForPC(pc).Name()
-	parts := strings.Split(name, ".")
-	pl := len(parts)
-	packageName := ""
-	funcName := parts[pl-1]
 
-	if parts[pl-2][0] == '(' {
-		funcName = parts[pl-2] + "." + funcName
-		packageName = strings.Join(parts[0:pl-2], ".")
-	} else {
-		packageName = strings.Join(parts[0:pl-1], ".")
+// Try -
+func (o *TNodeIterator) Try(items ...interface{}) *TNodeIterator {
+	temp := &TNodeIterator{}
+	*temp = *o
+	ret, err := temp.tryToAccept(items...)
+	if err != nil {
+		return o
 	}
-
-	fmt.Printf("name: %v\nfile: %v\nline: %v\nfunc: %v\npkg: %v\n\n", name, fileName, line, funcName, packageName)
-	// return &callInfo{
-	// 	packageName: packageName,
-	// 	fileName:    fileName,
-	// 	funcName:    funcName,
-	// 	line:        line,
-	// }
+	return ret
 }
 
 // Accept -
 func (o *TNodeIterator) Accept(items ...interface{}) *TNodeIterator {
+	temp := &TNodeIterator{}
+	*temp = *o
+	ret, err := temp.tryToAccept(items...)
+	log.Error(true, err)
+	return ret
+}
+
+// Accept -
+// func (o *TNodeIterator) Accept(items ...interface{}) *TNodeIterator {
+// 	// retrieveCallInfo()
+// 	if o == nil || o.root == nil {
+// 		log.Error(true, errInvalidObject)
+// 		return nil
+// 	}
+// 	if o.inNode == nil {
+// 		log.Error(true, "no more nodes")
+// 		o.root = nil
+// 		return nil
+// 	}
+
+// 	if len(items) > 0 {
+// 		where, ok := itemsToIntSlice(o.parser, items...)
+// 		if !ok {
+// 			o.root = nil
+// 			return nil
+// 		}
+// 		// fmt.Printf("id: %v; where: %v\n", o.inNode.Type, where)
+// 		if !in(o.inNode.Type, where) {
+// 			o.root = nil
+// 			log.Errorf(true, "unexpected node %q", o.parser.ByID(o.inNode.Type))
+// 			// return nil
+// 		}
+// 	}
+
+// 	o.index++
+// 	if o.index > len(o.root.Links)-1 {
+// 		if o.inNode == nil {
+// 			log.Errorf(true, "index %v out of range 0..%v", o.index, len(o.root.Links)-1)
+// 			o.root = nil
+// 			return nil
+// 		}
+// 		o.retNode = o.inNode
+// 		o.inNode = nil
+// 		return o
+// 	}
+// 	o.retNode = o.inNode
+// 	o.inNode = o.root.Links[o.index]
+// 	return o
+// }
+
+func (o *TNodeIterator) tryToAccept(items ...interface{}) (*TNodeIterator, error) {
 	// retrieveCallInfo()
-	errPrefix := "Accept: "
-	if o == nil || o.root == nil || o.inNode == nil {
-		log.Errorf(true, "%v%v", errPrefix, errInvalidObject)
+	if o == nil || o.root == nil {
+		return nil, fmt.Errorf(errInvalidObject)
+	}
+	if o.inNode == nil {
 		o.root = nil
-		return nil
+		return nil, fmt.Errorf("no more nodes")
 	}
 
 	if len(items) > 0 {
-		where, ok := itemsToIntSlice(errPrefix, o.parser, items...)
+		where, ok := itemsToIntSlice(o.parser, items...)
 		if !ok {
 			o.root = nil
-			return nil
+			return nil, nil
 		}
 		// fmt.Printf("id: %v; where: %v\n", o.inNode.Type, where)
 		if !in(o.inNode.Type, where) {
 			o.root = nil
-			log.Errorf(true, "%vunexpected node %q", errPrefix, o.parser.ByID(o.inNode.Type))
-			// return nil
+			return nil, fmt.Errorf("unexpected node %q", o.parser.ByID(o.inNode.Type))
 		}
 	}
 
 	o.index++
 	if o.index > len(o.root.Links)-1 {
 		if o.inNode == nil {
-			log.Errorf(true, "%vindex %v out of range 0..%v", errPrefix, o.index, len(o.root.Links)-1)
 			o.root = nil
-			return nil
+			return nil, fmt.Errorf("index %v out of range 0..%v", o.index, len(o.root.Links)-1)
 		}
 		o.retNode = o.inNode
 		o.inNode = nil
-		return o
+		return o, nil
 	}
 	o.retNode = o.inNode
 	o.inNode = o.root.Links[o.index]
-	return o
+	return o, nil
 }
 
 // Node -
 func (o *TNodeIterator) Node() *ptool.TNode {
 	if o == nil || o.root == nil {
-		log.Errorf(true, "%v%v", "Node: ", errInvalidObject)
+		log.Error(true, errInvalidObject)
 		return nil
 	}
 	return o.retNode
@@ -160,7 +192,7 @@ func (o *TNodeIterator) Node() *ptool.TNode {
 // Value -
 func (o *TNodeIterator) Value() string {
 	if o == nil || o.root == nil {
-		log.Errorf(true, "%v%v", "Value: ", errInvalidObject)
+		log.Error(true, errInvalidObject)
 		return ""
 	}
 	return o.retNode.Value
@@ -169,7 +201,7 @@ func (o *TNodeIterator) Value() string {
 // ID -
 func (o *TNodeIterator) ID() int {
 	if o == nil || o.root == nil {
-		log.Errorf(true, "%v%v", "ID: ", errInvalidObject)
+		log.Error(true, errInvalidObject)
 		return -1
 	}
 	return o.retNode.Type
@@ -178,7 +210,7 @@ func (o *TNodeIterator) ID() int {
 // Name -
 func (o *TNodeIterator) Name() string {
 	if o == nil || o.root == nil {
-		log.Errorf(true, "%v%v", "Name: ", errInvalidObject)
+		log.Error(true, errInvalidObject)
 		return ""
 	}
 	return o.parser.ByID(o.retNode.Type)
@@ -193,30 +225,30 @@ func in(what int, where []int) bool {
 	return false
 }
 
-func itemToInt(errPrefix string, p *ptool.TParser, item interface{}) int {
+func itemToInt(p *ptool.TParser, item interface{}) int {
 	ret := -1
 	switch t := item.(type) {
 	default:
-		log.Errorf(true, "%villegal type %v", errPrefix, t)
+		log.Errorf(true, "illegal type %v", t)
 	case int:
 		ret = t
 		if ret < 0 {
-			log.Errorf(true, "%vinvalid node id %v", errPrefix, t)
+			log.Errorf(true, "invalid node id %v", t)
 		}
 	case string:
 		ret = p.ByName(t)
 		if ret < 0 {
-			log.Errorf(true, "%vunknown node type %q", errPrefix, t)
+			log.Errorf(true, "unknown node type %q", t)
 		}
 	}
 	return ret
 }
 
-func itemsToIntSlice(errPrefix string, p *ptool.TParser, items ...interface{}) ([]int, bool) {
+func itemsToIntSlice(p *ptool.TParser, items ...interface{}) ([]int, bool) {
 	ret := []int{}
 	ok := true
 	for _, i := range items {
-		id := itemToInt(errPrefix, p, i)
+		id := itemToInt(p, i)
 		if id < 0 {
 			ok = false
 			continue

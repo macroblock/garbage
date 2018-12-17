@@ -29,6 +29,10 @@ type (
 	}
 )
 
+var (
+	cR = misc.Color()
+)
+
 // NewLogger -
 func NewLogger(params ...interface{}) ILogger {
 	unsupported := "logger error: unsupported type %v.\n"
@@ -174,17 +178,17 @@ func fmtHeader(info *LogInfo, style *LevelStyle) string {
 	default:
 		fallthrough
 	case showVerbose:
-		return fmt.Sprintf("%s%v %s\n%v %v %v/%v:%v %s\n",
-			style.C2, info.Time, style.C1,
-			info.Level, info.FuncName, info.PackageFullName, info.FileName, info.LineNumber, style.C0)
+		return fmt.Sprintf("%s%v%s %v\n%v %v/%v:%v%s\n",
+			style.C1, info.Level.Only(), style.C2, info.Time,
+			info.FuncName, info.PackageFullName, info.FileName, info.LineNumber, cR)
 	case showBrief:
-		return fmt.Sprintf("%s%v %v %v %v/%v:%v %s\n",
-			style.C2, info.Level.Only(), info.Time.Format("2006-01-02 15:04:05"),
-			info.FuncName, info.PackageName, info.FileName, info.LineNumber, style.C0)
+		return fmt.Sprintf("%s%v%s %v %v %v/%v:%v%s\n",
+			style.C1, info.Level.Only(), style.C2, info.Time.Format("2006-01-02 15:04:05"),
+			info.FuncName, info.PackageName, info.FileName, info.LineNumber, cR)
 	case showEssential:
-		return fmt.Sprintf("%s%v %v %v %s\n",
-			style.C2, info.Level.Only(), info.Time.Format("2006-01-02 15:04:05"),
-			info.PackageName, style.C0)
+		return fmt.Sprintf("%s%v%s %v %v%s\n",
+			style.C1, info.Level.Only(), style.C2, info.Time.Format("2006-01-02 15:04:05"),
+			info.PackageName, cR)
 	case showNone:
 		return ""
 	}
@@ -195,18 +199,17 @@ func fmtMsg(msg string, indent int, prefix string, C0, C1 string) string {
 		return ""
 	}
 	if indent == 0 && len(prefix) == 0 {
-		return fmt.Sprintf("%s%v%s\n", C0, msg, C1)
+		return fmt.Sprintf("%s%v%s\n", C0, msg, cR)
 	}
 	offs := "\n" + strings.Repeat(" ", indent)
 	msg = strings.Join(strings.Split(msg, "\n"), offs)
-	return fmt.Sprintf("%s%v%v%s\n", C0, prefix, msg, C1)
+	return fmt.Sprintf("%s%v%v%s\n", C0, prefix, msg, cR)
 }
 
 func fmtBody(info *LogInfo, style *LevelStyle) string {
 	if style.Body == showNone {
 		return ""
 	}
-	cR := misc.Color()
 	C1 := style.C1
 	if len(info.Cause) == 0 {
 		C1 = cR
@@ -232,7 +235,6 @@ func fmtBody(info *LogInfo, style *LevelStyle) string {
 }
 
 func fmtFooter(info *LogInfo, style *LevelStyle) string {
-	cR := misc.Color()
 	switch style.Footer {
 	default:
 		fallthrough

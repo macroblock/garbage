@@ -65,7 +65,7 @@ func isTerminal(f *os.File) bool {
 }
 
 func fillCallInfo(info *LogInfo) {
-	pc, file, line, _ := runtime.Caller(2)
+	pc, file, line, _ := runtime.Caller(4)
 	_, fileName := path.Split(file)
 	name := runtime.FuncForPC(pc).Name()
 	parts := strings.Split(name, ".")

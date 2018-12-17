@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 
+	ansi "github.com/k0kubun/go-ansi"
 	"github.com/macroblock/garbage/zlog"
 )
 
@@ -42,4 +43,6 @@ func main() {
 	}
 
 	log.Error(1, "mesage")
+
+	ansi.Printf("\033[0;31;m %v \033[0;31;1m %v\n", "text", "text")
 }
