@@ -34,91 +34,84 @@ type (
 		C0, C1, C2 string
 		Header     appearance
 		Title      appearance
-		Message    appearance
-		Cause      appearance
+		Body       appearance
+		Footer     appearance
 	}
 )
 
 const (
-	showNone    appearance = iota
-	showBrief   appearance = iota
-	showVerbose appearance = iota
+	showNone appearance = iota
+	showEssential
+	showBrief
+	showVerbose
 )
 
 var (
 	defaultStyle = LevelStyle{
-		C0:      misc.Color(),
-		C1:      misc.Color(),
-		C2:      misc.Color(),
-		Header:  showVerbose,
-		Title:   showVerbose,
-		Message: showVerbose,
-		Cause:   showVerbose,
+		C0:     misc.Color(),
+		C1:     misc.Color(),
+		C2:     misc.Color(),
+		Header: showVerbose,
+		Body:   showVerbose,
+		Footer: showVerbose,
 	}
 
 	levelToColor = []*LevelStyle{
 		{ // panic
-			C0:      misc.Color(cBold, cBgRed, cWhite),
-			C1:      misc.Color(cBgRed, cWhite),
-			C2:      misc.Color(cBold, cBlack),
-			Header:  showVerbose,
-			Title:   showVerbose,
-			Message: showVerbose,
-			Cause:   showVerbose,
+			C0:     misc.Color(cBold, cBgRed, cWhite),
+			C1:     misc.Color(cBgRed, cWhite),
+			C2:     misc.Color(cBold, cBlack),
+			Header: showVerbose,
+			Body:   showVerbose,
+			Footer: showBrief,
 		},
 		{ // critical
-			C0:      misc.Color(cBold, cBgRed, cWhite),
-			C1:      misc.Color(cBgRed, cWhite),
-			C2:      misc.Color(cBold, cBlack),
-			Header:  showVerbose,
-			Title:   showVerbose,
-			Message: showVerbose,
-			Cause:   showVerbose,
+			C0:     misc.Color(cBold, cBgRed, cWhite),
+			C1:     misc.Color(cBgRed, cWhite),
+			C2:     misc.Color(cBold, cBlack),
+			Header: showVerbose,
+			Body:   showVerbose,
+			Footer: showBrief,
 		},
 		{ // error
-			C0:      misc.Color(cBold, cRed),
-			C1:      misc.Color(cRed),
-			C2:      misc.Color(cBold, cBlack),
-			Header:  showVerbose,
-			Title:   showNone,
-			Message: showVerbose,
-			Cause:   showVerbose,
+			C0:     misc.Color(cBold, cRed),
+			C1:     misc.Color(cRed),
+			C2:     misc.Color(cBold, cBlack),
+			Header: showBrief,
+			Body:   showVerbose,
+			Footer: showBrief,
 		},
 		{ // warning
-			C0:      misc.Color(cBold, cYellow),
-			C1:      misc.Color(cYellow),
-			C2:      misc.Color(cBold, cBlack),
-			Header:  showVerbose,
-			Title:   showNone,
-			Message: showVerbose,
-			Cause:   showVerbose,
+			C0:     misc.Color(cBold, cYellow),
+			C1:     misc.Color(cYellow),
+			C2:     misc.Color(cBold, cBlack),
+			Header: showBrief,
+			Body:   showVerbose,
+			Footer: showBrief,
 		},
 		{ // notice
-			C0:      misc.Color(cBold, cGreen),
-			C1:      misc.Color(cGreen),
-			C2:      misc.Color(cBold, cBlack),
-			Header:  showVerbose,
-			Title:   showNone,
-			Message: showVerbose,
-			Cause:   showVerbose,
+			C0:     misc.Color(cBold, cGreen),
+			C1:     misc.Color(cGreen),
+			C2:     misc.Color(cBold, cBlack),
+			Header: showEssential,
+			Body:   showEssential,
+			Footer: showBrief,
 		},
 		{ // info
-			C0:      misc.Color(cWhite),
-			C1:      misc.Color(cWhite),
-			C2:      misc.Color(cBold, cBlack),
-			Header:  showNone,
-			Title:   showNone,
-			Message: showBrief,
-			Cause:   showBrief,
+			C0:     misc.Color(cWhite),
+			C1:     misc.Color(cWhite),
+			C2:     misc.Color(cBold, cBlack),
+			Header: showNone,
+			Body:   showEssential,
+			Footer: showBrief,
 		},
 		{ // debug
-			C0:      misc.Color(cBold, cBlack),
-			C1:      misc.Color(cBold, cBlack),
-			C2:      misc.Color(cBold, cBlack),
-			Header:  showVerbose,
-			Title:   showVerbose,
-			Message: showVerbose,
-			Cause:   showVerbose,
+			C0:     misc.Color(cBold, cBlack),
+			C1:     misc.Color(cBold, cBlack),
+			C2:     misc.Color(cBold, cBlack),
+			Header: showVerbose,
+			Body:   showVerbose,
+			Footer: showBrief,
 		},
 	}
 )

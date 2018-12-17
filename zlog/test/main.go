@@ -11,11 +11,11 @@ var (
 )
 
 var (
-	text  = "longer one-lined message to print"
-	text2 = "unexpected multi-lined message to print for\ndemonstration purposes and nothing else"
+	text  = "a bit longer single-line message to print"
+	text2 = "unexpected multi-line message to print for\ndemonstration purpose and nothing else"
 
-	err  = fmt.Errorf("unexpected error is for demonstration porposes only")
-	err2 = fmt.Errorf("something wrong heppend with half-fatal consequence\nyou have to do something")
+	err  = fmt.Errorf("another unexpected error for demonstration purpose only")
+	err2 = fmt.Errorf("something wrong heppend causing half-fatal consequences\nso you have to do something smart and brave")
 )
 
 func main() {
@@ -28,6 +28,17 @@ func main() {
 	}
 	for level := zlog.LevelCritical; level <= zlog.LevelDebug; level++ {
 		log.Log(level, err2, text2)
+	}
+	for level := zlog.LevelCritical; level <= zlog.LevelDebug; level++ {
+		log.Log(level, true, text)
+	}
+
+	for level := zlog.LevelCritical; level <= zlog.LevelDebug; level++ {
+		log.Log(level, true)
+	}
+
+	for level := zlog.LevelCritical; level <= zlog.LevelDebug; level++ {
+		log.Log(level, true, "")
 	}
 
 	log.Error(1, "mesage")
