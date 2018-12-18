@@ -17,7 +17,8 @@ type TNodeIterator struct {
 }
 
 const (
-	errInvalidObject = " invalid iterator"
+	errInvalidObject    = " invalid iterator"
+	errInvalidOperation = " invalid operation"
 )
 
 // NewNodeIterator -
@@ -80,88 +81,46 @@ func (o *TNodeIterator) AutoIgnore(items ...interface{}) *TNodeIterator {
 }
 
 // Try -
-func (o *TNodeIterator) Try(items ...interface{}) *TNodeIterator {
-	temp := &TNodeIterator{}
-	*temp = *o
-	ret, err := temp.tryToAccept(items...)
+func (o *TNodeIterator) Try(items ...interface{}) bool {
+	it := &TNodeIterator{}
+	*it = *o
+	err := it.tryToAccept(items...)
 	if err != nil {
-		return o
+		return false
 	}
-	return ret
+	*o = *it
+	return true
 }
 
 // Accept -
 func (o *TNodeIterator) Accept(items ...interface{}) *TNodeIterator {
-	temp := &TNodeIterator{}
-	*temp = *o
-	ret, err := temp.tryToAccept(items...)
-	log.Error(true, err)
-	return ret
+	err := o.tryToAccept(items...)
+	log.Error(err)
+	return o
 }
 
-// Accept -
-// func (o *TNodeIterator) Accept(items ...interface{}) *TNodeIterator {
-// 	// retrieveCallInfo()
-// 	if o == nil || o.root == nil {
-// 		log.Error(true, errInvalidObject)
-// 		return nil
-// 	}
-// 	if o.inNode == nil {
-// 		log.Error(true, "no more nodes")
-// 		o.root = nil
-// 		return nil
-// 	}
-
-// 	if len(items) > 0 {
-// 		where, ok := itemsToIntSlice(o.parser, items...)
-// 		if !ok {
-// 			o.root = nil
-// 			return nil
-// 		}
-// 		// fmt.Printf("id: %v; where: %v\n", o.inNode.Type, where)
-// 		if !in(o.inNode.Type, where) {
-// 			o.root = nil
-// 			log.Errorf(true, "unexpected node %q", o.parser.ByID(o.inNode.Type))
-// 			// return nil
-// 		}
-// 	}
-
-// 	o.index++
-// 	if o.index > len(o.root.Links)-1 {
-// 		if o.inNode == nil {
-// 			log.Errorf(true, "index %v out of range 0..%v", o.index, len(o.root.Links)-1)
-// 			o.root = nil
-// 			return nil
-// 		}
-// 		o.retNode = o.inNode
-// 		o.inNode = nil
-// 		return o
-// 	}
-// 	o.retNode = o.inNode
-// 	o.inNode = o.root.Links[o.index]
-// 	return o
-// }
-
-func (o *TNodeIterator) tryToAccept(items ...interface{}) (*TNodeIterator, error) {
+func (o *TNodeIterator) tryToAccept(items ...interface{}) error {
 	// retrieveCallInfo()
 	if o == nil || o.root == nil {
-		return nil, fmt.Errorf(errInvalidObject)
+		return fmt.Errorf(errInvalidObject)
 	}
 	if o.inNode == nil {
 		o.root = nil
-		return nil, fmt.Errorf("no more nodes")
+		return fmt.Errorf("no more nodes")
 	}
 
 	if len(items) > 0 {
 		where, ok := itemsToIntSlice(o.parser, items...)
 		if !ok {
 			o.root = nil
-			return nil, nil
+			return nil
 		}
 		// fmt.Printf("id: %v; where: %v\n", o.inNode.Type, where)
+		// log.Notice(where, "type:", o.inNode.Type)
 		if !in(o.inNode.Type, where) {
 			o.root = nil
-			return nil, fmt.Errorf("unexpected node %q", o.parser.ByID(o.inNode.Type))
+			// log.Info("exit 0")
+			return fmt.Errorf("unexpected node %q", o.parser.ByID(o.inNode.Type))
 		}
 	}
 
@@ -169,15 +128,18 @@ func (o *TNodeIterator) tryToAccept(items ...interface{}) (*TNodeIterator, error
 	if o.index > len(o.root.Links)-1 {
 		if o.inNode == nil {
 			o.root = nil
-			return nil, fmt.Errorf("index %v out of range 0..%v", o.index, len(o.root.Links)-1)
+			// log.Info("exit 1")
+			return fmt.Errorf("index %v out of range 0..%v", o.index, len(o.root.Links)-1)
 		}
 		o.retNode = o.inNode
 		o.inNode = nil
-		return o, nil
+		// log.Info("exit 2")
+		return nil
 	}
 	o.retNode = o.inNode
 	o.inNode = o.root.Links[o.index]
-	return o, nil
+	// log.Info("exit 3", o.inNode.Type)
+	return nil
 }
 
 // Node -
@@ -195,6 +157,10 @@ func (o *TNodeIterator) Value() string {
 		log.Error(true, errInvalidObject)
 		return ""
 	}
+	if o.retNode == nil {
+		log.Error(true, errInvalidOperation)
+		return ""
+	}
 	return o.retNode.Value
 }
 
@@ -204,6 +170,10 @@ func (o *TNodeIterator) ID() int {
 		log.Error(true, errInvalidObject)
 		return -1
 	}
+	if o.retNode == nil {
+		log.Error(true, errInvalidOperation)
+		return -1
+	}
 	return o.retNode.Type
 }
 
@@ -211,6 +181,10 @@ func (o *TNodeIterator) ID() int {
 func (o *TNodeIterator) Name() string {
 	if o == nil || o.root == nil {
 		log.Error(true, errInvalidObject)
+		return ""
+	}
+	if o.retNode == nil {
+		log.Error(true, errInvalidOperation)
 		return ""
 	}
 	return o.parser.ByID(o.retNode.Type)
@@ -232,14 +206,10 @@ func itemToInt(p *ptool.TParser, item interface{}) int {
 		log.Errorf(true, "illegal type %v", t)
 	case int:
 		ret = t
-		if ret < 0 {
-			log.Errorf(true, "invalid node id %v", t)
-		}
+		log.Errorf(ret < 0, "invalid node id %v", t)
 	case string:
 		ret = p.ByName(t)
-		if ret < 0 {
-			log.Errorf(true, "unknown node type %q", t)
-		}
+		log.Errorf(ret < 0, "unknown node type %q", t)
 	}
 	return ret
 }

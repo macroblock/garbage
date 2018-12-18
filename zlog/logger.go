@@ -207,28 +207,21 @@ func fmtMsg(msg string, indent int, prefix string, C0, C1 string) string {
 }
 
 func fmtBody(info *LogInfo, style *LevelStyle) string {
-	if style.Body == showNone {
-		return ""
-	}
-	C1 := style.C1
-	if len(info.Cause) == 0 {
-		C1 = cR
-	}
 	switch style.Body {
 	default:
 		fallthrough
 	case showVerbose:
 		return fmt.Sprintf("%v%v",
-			fmtMsg(info.Message, 4, ">>> ", style.C0, C1),
-			fmtMsg(info.Cause, 4, "  > ", style.C1, cR))
+			fmtMsg(info.Message, 4, ">>> ", style.C0, style.C1),
+			fmtMsg(info.Cause, 4, "  > ", style.C1, style.C1))
 	case showBrief:
 		return fmt.Sprintf("%v%v",
-			fmtMsg(info.Message, 4, "    ", style.C0, C1),
-			fmtMsg(info.Cause, 4, "    ", style.C1, cR))
+			fmtMsg(info.Message, 4, "    ", style.C0, style.C1),
+			fmtMsg(info.Cause, 4, "    ", style.C1, style.C1))
 	case showEssential:
 		return fmt.Sprintf("%v%v",
-			fmtMsg(info.Message, 0, "", style.C0, C1),
-			fmtMsg(info.Cause, 0, "", style.C1, cR))
+			fmtMsg(info.Message, 0, "", style.C0, style.C1),
+			fmtMsg(info.Cause, 0, "", style.C1, style.C1))
 	case showNone:
 		return ""
 	}

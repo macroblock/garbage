@@ -119,7 +119,8 @@ func getCause(cause interface{}) (string, bool) {
 			if v.Len() == 0 {
 				return "", false
 			}
-			slice := make([]string, v.Len())
+			// fmt.Println("asfafa:", v.Len())
+			slice := make([]string, 0, v.Len())
 			for i := 0; i < v.Len(); i++ {
 				slice = append(slice, fmt.Sprint(v.Index(i)))
 			}
@@ -131,7 +132,7 @@ func getCause(cause interface{}) (string, bool) {
 	case bool:
 		ok = v
 	case int, int8, int16, int32, int64,
-		uint, uint8, uint16, uint32, uint64:
+		uint, uint8, uint16, uint32, uint64: // rune and byte just aliases
 		if v == 0 {
 			return "", false
 		}

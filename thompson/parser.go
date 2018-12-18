@@ -166,13 +166,10 @@ func (o *TParser) Build() []error {
 			case "var":
 				it := NewNodeIterator(node, o.parser)
 				name := it.Accept("ident").Value()
-				label := it.Accept("string").Value()
-				// name := node.Links[0].Value
-				// label := ""
-				// if len(node.Links) > 1 {
-				// 	label = node.Links[1].Value
-				// }
-				// fmt.Println(name, node)
+				label := ""
+				if it.Try("string") {
+					label = it.Value()
+				}
 				err := symbols.Add(name, label)
 				errors.Add(err)
 			}
