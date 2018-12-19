@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"strconv"
+	"unicode/utf8"
 
 	"github.com/macroblock/garbage/thompson/errors"
 	"github.com/macroblock/imed/pkg/ptool"
@@ -163,6 +164,7 @@ func (o *TParser) Build() []error {
 			case "sequence":
 				variable.seqNode = node
 				elem := &TSequence{}
+				elem.Repeat(1, 1)
 				errs := parsSequence(elem, node)
 				errors.Add(errs.Get()...)
 				variable.element = elem
@@ -175,45 +177,49 @@ func (o *TParser) Build() []error {
 
 	parsSequence = func(element ISeq, root *ptool.TNode) *errors.TErrors {
 		errors := errors.NewErrors()
-		// element := &TSequence{}
+		repeat := TRepeat{1, 1}
 		for _, node := range root.Links {
 			nodeType := o.parser.ByID(node.Type)
 			switch nodeType {
 			default:
 				errors.Addf("@parseVarsInSequence an unsupported element %q", nodeType)
+				repeat.Repeat(1, 1)
 				continue
 			case "comment":
 			case "repeat_01":
-				element.Repeat(0, 1)
+				repeat = TRepeat{0, 1}
 			case "repeat_0f":
-				element.Repeat(0, -1)
+				repeat = TRepeat{0, -1}
 			case "repeat_1f":
-				element.Repeat(1, -1)
+				repeat = TRepeat{1, -1}
 			case "repeat_xy":
 				from, err1 := strconv.Atoi(node.Links[0].Value)
 				to, err2 := strconv.Atoi(node.Links[1].Value)
 				errors.Add(err1, err2)
-				element.Repeat(from, to)
+				repeat = TRepeat{from, to}
 			case "repeat_xf":
 				from, err := strconv.Atoi(node.Links[0].Value)
 				errors.Add(err)
-				element.Repeat(from, -1)
+				repeat = TRepeat{from, -1}
 			case "repeat_x":
 				from, err := strconv.Atoi(node.Links[0].Value)
 				errors.Add(err)
-				element.Repeat(from, from)
+				repeat = TRepeat{from, from}
 			case "sequence":
-				elem := &TSequence{}
+				elem := &TSequence{TRepeat: repeat}
+				repeat.Repeat(1, 1)
 				errs := parsSequence(elem, node)
 				errors.Add(errs.Get()...)
 				element.Append(elem)
 			case "split":
-				elem := &TSplit{}
+				elem := &TSplit{TRepeat: repeat}
+				repeat.Repeat(1, 1)
 				errs := parsSequence(elem, node)
 				errors.Add(errs.Get()...)
 				element.Append(elem)
 			case "keepValue":
-				elem := &TKeepValue{}
+				elem := &TKeepValue{TRepeat: repeat}
+				repeat.Repeat(1, 1)
 				errs := parsSequence(elem, node)
 				errors.Add(errs.Get()...)
 				element.Append(elem)
@@ -221,10 +227,27 @@ func (o *TParser) Build() []error {
 				elem := &TKeepNode{}
 				elem.name = node.Links[0].Value
 				element.Append(elem)
+			case "rune":
+				elem := &TRune{TRepeat: repeat}
+				repeat.Repeat(1, 1)
+				elem.r, _ = utf8.DecodeRuneInString(node.Value)
+				element.Append(elem)
+			case "range":
+				elem := &TRange{TRepeat: repeat}
+				repeat.Repeat(1, 1)
+				elem.from, _ = utf8.DecodeRuneInString(node.Links[0].Value)
+				elem.to, _ = utf8.DecodeRuneInString(node.Links[1].Value)
+				element.Append(elem)
+			case "string":
+				elem := &TString{TRepeat: repeat}
+				repeat.Repeat(1, 1)
+				elem.str = node.Value
+				element.Append(elem)
 			case "ident":
 				err := symbols.Update(&TVar{name: node.Value, defined: false})
 				errors.Add(err)
-				elem := &TIdent{}
+				elem := &TIdent{TRepeat: repeat}
+				repeat.Repeat(1, 1)
 				elem.name = node.Value
 				element.Append(elem)
 			}
@@ -233,5 +256,13 @@ func (o *TParser) Build() []error {
 	}
 
 	errors := parse(o.tree)
+
+	for _, v := range symbols.data {
+		fmt.Printf("--> %v %q, defined:%v\n", v.name, v.label, v.defined)
+		if v.element != nil {
+			fmt.Printf("element: %v\n", v.element)
+		}
+	}
+
 	return errors.Get()
 }

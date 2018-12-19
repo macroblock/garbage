@@ -53,7 +53,7 @@ var testProg = `
 x = a b @c +(d y [a1 a2 a3] z) [ e f g ];
 // comment here
 z = asdf;
-a 'test1' = a b c;
+a 'test1' = *'&' 'string literal' 'a'-'z';
 `
 
 func main() {

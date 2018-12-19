@@ -24,7 +24,7 @@ optRuneSize     = number;
 blockDecl       = @lval '=>' @options '{' decl '}';
 
 sequence        = expr {expr};
-expr            = repeat(@ident | @keepNode | @split | seq | @keepValue | @term );
+expr            = repeat(@ident | @keepNode | @split | seq | @keepValue | term );
 term            = @range | r | str | @eof;
 seq             = '(' {@sequence} ')';
 split           = '[' {sequence} ']';
