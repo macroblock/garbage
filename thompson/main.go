@@ -50,10 +50,10 @@ func (o *TStringStack) Pop() *string {
 }
 
 var testProg = `
-x += a b @c +(d y z) [ e f g ];
+x = a b @c +(d y [a1 a2 a3] z) [ e f g ];
 // comment here
-z += asdf;
-a 'test1', x 'test2', z 'test3' ,u 'other' += a b c;
+z = asdf;
+a 'test1' = a b c;
 `
 
 func main() {
@@ -72,12 +72,12 @@ func main() {
 	parser := NewParser()
 	errors := parser.Parse(testProg)
 	if errors != nil {
-		print("parse error(s):", errors...)
+		print("--> parse error(s):", errors...)
 		return
 	}
 	errors = parser.Build()
 	if errors != nil {
-		print("build error(s):", errors...)
+		print("--> build error(s):", errors...)
 		return
 	}
 }

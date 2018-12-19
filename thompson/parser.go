@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/macroblock/garbage/thompson/errors"
 	"github.com/macroblock/imed/pkg/ptool"
@@ -19,9 +20,12 @@ type (
 	TVar struct {
 		name     string
 		label    string
+		element  interface{}
+		seqNode  *ptool.TNode
 		options  *tOptions
 		entries  []*ptool.TNode
 		resolved bool
+		defined  bool
 		data     interface{}
 	}
 
@@ -40,23 +44,30 @@ type (
 	}
 )
 
-// NewVar -
-func NewVar(name, label string, entry *ptool.TNode) *TVar {
-	return &TVar{name: name, label: label, entries: []*ptool.TNode{entry}}
-}
-
 // NewSymbolTable -
 func NewSymbolTable() *TSymbolTable {
 	return &TSymbolTable{data: map[string]*TVar{}}
 }
 
-// Add -
-func (o *TSymbolTable) Add(name, label string) error {
-	if _, exists := o.data[name]; exists {
-		return fmt.Errorf("duplicate identifier %v", name)
+// Update -
+func (o *TSymbolTable) Update(v *TVar) error {
+	if v == nil {
+		return fmt.Errorf("variable is nil")
 	}
-	fmt.Printf("symbol has been added: %q %q\n", name, label)
-	o.data[name] = NewVar(name, label, nil)
+	if len(v.name) == 0 {
+		return fmt.Errorf("variable name is empty")
+	}
+	if symbol, exists := o.data[v.name]; exists {
+		if symbol.defined && v.defined {
+			return fmt.Errorf("duplicate identifier %5v", v.name)
+		}
+		if !v.defined {
+			fmt.Printf("skiped %5v %q %q\n", v.defined, v.name, v.label)
+			return nil
+		}
+	}
+	fmt.Printf("symbol has been added: %5v %q %q\n", v.defined, v.name, v.label)
+	o.data[v.name] = v
 	return nil
 }
 
@@ -111,10 +122,10 @@ func (o *TParser) Build() []error {
 	symbols := NewSymbolTable()
 
 	var (
-		parse     func(*ptool.TNode) *errors.TErrors
-		parseDecl func(*ptool.TNode) *errors.TErrors
-		parseLVal func(*ptool.TNode) *errors.TErrors
-		parseExpr func(*ptool.TNode) *errors.TErrors
+		parse        func(*ptool.TNode) *errors.TErrors
+		parseDecl    func(*ptool.TNode) *errors.TErrors
+		parsSequence func(ISeq, *ptool.TNode) *errors.TErrors
+		// parseLVal     func(*ptool.TNode) *errors.TErrors
 	)
 	parse = func(root *ptool.TNode) *errors.TErrors {
 		errors := errors.NewErrors()
@@ -122,63 +133,103 @@ func (o *TParser) Build() []error {
 			nodeType := o.parser.ByID(node.Type)
 			switch nodeType {
 			default:
-				errors.Addf("an unsupported element %q", nodeType)
+				errors.Addf("@parse: an unsupported element %q", nodeType)
 				continue
-			case "comment":
+			// case "comment":
 			case "nodeDecl", "blockDecl":
 				errs := parseDecl(node)
 				errors.Add(errs.Get()...)
 			}
-		} // for _, node := range root.Links
+		}
 		return errors
 	}
 
 	parseDecl = func(root *ptool.TNode) *errors.TErrors {
 		errors := errors.NewErrors()
+		variable := (*TVar)(nil)
 		for _, node := range root.Links {
 			nodeType := o.parser.ByID(node.Type)
 			switch nodeType {
 			default:
-				errors.Addf("an unsupported element %q", nodeType)
+				errors.Addf("@parseDecl: an unsupported element %q", nodeType)
 				continue
-			case "comment":
+				// case "comment":
 			case "lval":
-				errs := parseLVal(node)
-				errors.Add(errs.Get()...)
-			case "options":
+				variable = &TVar{defined: true}
+				variable.name = node.Links[0].Value // "ident"
+				if len(node.Links) > 1 {
+					variable.label = node.Links[0].Value // "string"
+				}
 			case "sequence":
-				errs := parseExpr(node)
+				variable.seqNode = node
+				elem := &TSequence{}
+				errs := parsSequence(elem, node)
 				errors.Add(errs.Get()...)
+				variable.element = elem
 			}
 		}
+		err := symbols.Update(variable)
+		errors.Add(err)
 		return errors
 	}
 
-	parseLVal = func(root *ptool.TNode) *errors.TErrors {
+	parsSequence = func(element ISeq, root *ptool.TNode) *errors.TErrors {
 		errors := errors.NewErrors()
+		// element := &TSequence{}
 		for _, node := range root.Links {
 			nodeType := o.parser.ByID(node.Type)
 			switch nodeType {
 			default:
-				errors.Addf("an unsupported element %q", nodeType)
+				errors.Addf("@parseVarsInSequence an unsupported element %q", nodeType)
 				continue
 			case "comment":
-			case "var":
-				it := NewNodeIterator(node, o.parser)
-				name := it.Accept("ident").Value()
-				label := ""
-				if it.Try("string") {
-					label = it.Value()
-				}
-				err := symbols.Add(name, label)
+			case "repeat_01":
+				element.Repeat(0, 1)
+			case "repeat_0f":
+				element.Repeat(0, -1)
+			case "repeat_1f":
+				element.Repeat(1, -1)
+			case "repeat_xy":
+				from, err1 := strconv.Atoi(node.Links[0].Value)
+				to, err2 := strconv.Atoi(node.Links[1].Value)
+				errors.Add(err1, err2)
+				element.Repeat(from, to)
+			case "repeat_xf":
+				from, err := strconv.Atoi(node.Links[0].Value)
 				errors.Add(err)
+				element.Repeat(from, -1)
+			case "repeat_x":
+				from, err := strconv.Atoi(node.Links[0].Value)
+				errors.Add(err)
+				element.Repeat(from, from)
+			case "sequence":
+				elem := &TSequence{}
+				errs := parsSequence(elem, node)
+				errors.Add(errs.Get()...)
+				element.Append(elem)
+			case "split":
+				elem := &TSplit{}
+				errs := parsSequence(elem, node)
+				errors.Add(errs.Get()...)
+				element.Append(elem)
+			case "keepValue":
+				elem := &TKeepValue{}
+				errs := parsSequence(elem, node)
+				errors.Add(errs.Get()...)
+				element.Append(elem)
+			case "keepNode":
+				elem := &TKeepNode{}
+				elem.name = node.Links[0].Value
+				element.Append(elem)
+			case "ident":
+				err := symbols.Update(&TVar{name: node.Value, defined: false})
+				errors.Add(err)
+				elem := &TIdent{}
+				elem.name = node.Value
+				element.Append(elem)
 			}
 		}
 		return errors
-	}
-
-	parseExpr = func(root *ptool.TNode) *errors.TErrors {
-		return nil
 	}
 
 	errors := parse(o.tree)
