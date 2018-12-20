@@ -50,10 +50,13 @@ func (o *TStringStack) Pop() *string {
 }
 
 var testProg = `
-x = a b @c +(d y [a1 a2 a3] z) [ e f g ];
++++ x = a b @c +(d y [a1 a2 a3] z) [ e f g ];
 // comment here
-z = asdf;
-a 'test1' = *'&' 'string literal' 'a'-'z';
+    z = asdf;
+--:
++++ a 'test1' = *'&' 'string literal' 'a'-'z';
+--:
+    last 'label' = ?a <some elements> finalizator;
 `
 
 func main() {

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"sort"
 	"strconv"
 	"unicode/utf8"
 
@@ -27,6 +28,7 @@ type (
 		entries  []*ptool.TNode
 		resolved bool
 		defined  bool
+		inUse    bool
 		data     interface{}
 	}
 
@@ -58,16 +60,20 @@ func (o *TSymbolTable) Update(v *TVar) error {
 	if len(v.name) == 0 {
 		return fmt.Errorf("variable name is empty")
 	}
+	inUse := "-"
+	if v.inUse {
+		inUse = "+"
+	}
 	if symbol, exists := o.data[v.name]; exists {
 		if symbol.defined && v.defined {
-			return fmt.Errorf("duplicate identifier %5v", v.name)
+			return fmt.Errorf("duplicate identifier %v %5v", inUse, v.name)
 		}
 		if !v.defined {
-			fmt.Printf("skiped %5v %q %q\n", v.defined, v.name, v.label)
+			fmt.Printf("skiped %v %5v %q %q\n", inUse, v.defined, v.name, v.label)
 			return nil
 		}
 	}
-	fmt.Printf("symbol has been added: %5v %q %q\n", v.defined, v.name, v.label)
+	fmt.Printf("symbol has been added: %v %5v %q %q\n", inUse, v.defined, v.name, v.label)
 	o.data[v.name] = v
 	return nil
 }
@@ -96,31 +102,11 @@ func (o *TParser) Parse(src string) []error {
 	return nil
 }
 
-func findNode(node *ptool.TNode, types ...string) *ptool.TNode {
-	if node == nil {
-		return nil
-	}
-	for _, typ := range types {
-		tid := parser.ByName(typ)
-		nextLevel := node
-		node = nil
-		for _, v := range nextLevel.Links {
-			if v.Type == tid {
-				node = v
-				break
-			}
-		}
-		if node == nil {
-			return nil
-		}
-		nextLevel = node
-	}
-	return node
-}
-
 // Build -
 func (o *TParser) Build() []error {
 	symbols := NewSymbolTable()
+
+	useMode := false
 
 	var (
 		parse        func(*ptool.TNode) *errors.TErrors
@@ -137,6 +123,10 @@ func (o *TParser) Build() []error {
 				errors.Addf("@parse: an unsupported element %q", nodeType)
 				continue
 			// case "comment":
+			case "useBelowOn":
+				useMode = true
+			case "useBelowOff":
+				useMode = false
 			case "nodeDecl", "blockDecl":
 				errs := parseDecl(node)
 				errors.Add(errs.Get()...)
@@ -148,19 +138,27 @@ func (o *TParser) Build() []error {
 	parseDecl = func(root *ptool.TNode) *errors.TErrors {
 		errors := errors.NewErrors()
 		variable := (*TVar)(nil)
+		use := useMode
 		for _, node := range root.Links {
 			nodeType := o.parser.ByID(node.Type)
 			switch nodeType {
 			default:
 				errors.Addf("@parseDecl: an unsupported element %q", nodeType)
 				continue
-				// case "comment":
+			// case "comment":
+			case "useOn":
+				use = true
+			case "useOff":
+				use = false
+			case "useExclude":
+				use = !use
 			case "lval":
-				variable = &TVar{defined: true}
+				variable = &TVar{defined: true, inUse: use}
 				variable.name = node.Links[0].Value // "ident"
 				if len(node.Links) > 1 {
-					variable.label = node.Links[0].Value // "string"
+					variable.label = node.Links[1].Value // "string"
 				}
+			case "string":
 			case "sequence":
 				variable.seqNode = node
 				elem := &TSequence{}
@@ -257,10 +255,19 @@ func (o *TParser) Build() []error {
 
 	errors := parse(o.tree)
 
+	slice := []string{}
 	for _, v := range symbols.data {
+		slice = append(slice, v.name)
+	}
+	sort.Strings(slice)
+	for _, name := range slice {
+		v := symbols.data[name]
 		fmt.Printf("--> %v %q, defined:%v\n", v.name, v.label, v.defined)
 		if v.element != nil {
 			fmt.Printf("element: %v\n", v.element)
+		}
+		if !v.defined {
+			errors.Addf("udefined variable %v, %q", v.name, v.label)
 		}
 	}
 

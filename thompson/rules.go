@@ -10,18 +10,18 @@ var parser *ptool.TParser
 
 // repeatList      = @ident | @keepNode | @split | seq | @keepValue | @term;
 var parserRules = `
-entry           = '' {';'} decl { ';'{';'} decl} {';'} $;
+entry           = '' {';'} (decl|useBelowMode) {decl|useBelowMode} $;
 
-decl            = @nodeDecl|@blockDecl;
+decl            = (@nodeDecl|@blockDecl) ';' {';'};
 
-nodeDecl        = @lval '=' @sequence
+nodeDecl        = [useMode] @lval '=' @sequence
                 | @ERR_incorrect_declaration;
 options         = [@optKeepMode] [@optSpaceMode] [@optRuneSize];
 optKeepMode     = '@';
 optSpaceMode    = '+'|'-';
 optRuneSize     = number;
 
-blockDecl       = @lval '=>' @options '{' decl '}';
+blockDecl       = [useMode] @lval '=>' @options '{' decl '}';
 
 sequence        = expr {expr};
 expr            = repeat(@ident | @keepNode | @split | seq | @keepValue | term );
@@ -31,9 +31,17 @@ split           = '[' {sequence} ']';
 keepValue       = '<' {sequence} '>';
 keepNode        = '@' # @ident;
 
-lval            = nodeVar|sysVar;
+lval            = [useMode] nodeVar|sysVar;
 nodeVar         = @ident [str];
 sysVar          = @sysIdent [str];
+
+useBelowMode    = (@useBelowOn|@useBelowOff) {';'};
+useMode         = @useOn|@useOff|@useExclude;
+useBelowOn      = '++:';
+useBelowOff     = '--:';
+useExclude      = '***';
+useOn           = '+++';
+useOff          = '---';
 
 repeat          = [ @repeat_01 | @repeat_0f | @repeat_1f | @repeat_xy | @repeat_xf | @repeat_x ];
 repeat_01       = '?' # repeatList;
