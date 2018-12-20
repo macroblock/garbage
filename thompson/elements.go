@@ -34,7 +34,8 @@ type (
 	// TIdent -
 	TIdent struct {
 		TRepeat
-		name string
+		name    string
+		element interface{}
 	}
 
 	// TRange -
@@ -92,7 +93,7 @@ func (o *TSplit) String() string { return fmt.Sprintf("%v[%v]", o.TRepeat, elems
 func (o *TKeepValue) String() string { return fmt.Sprintf("%v<%v>", o.TRepeat, elemsToStr(o.elements)) }
 
 // String -
-func (o *TIdent) String() string { return fmt.Sprintf("%v%v", o.TRepeat, o.name) }
+func (o *TIdent) String() string { return fmt.Sprintf("%v%v:%v", o.TRepeat, o.name, o.element) }
 
 // String -
 func (o *TRange) String() string {

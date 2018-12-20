@@ -20,16 +20,17 @@ type (
 
 	// TVar -
 	TVar struct {
-		name     string
-		label    string
-		element  interface{}
-		seqNode  *ptool.TNode
-		options  *tOptions
-		entries  []*ptool.TNode
-		resolved bool
-		defined  bool
-		inUse    bool
-		data     interface{}
+		name      string
+		label     string
+		element   interface{}
+		seqNode   *ptool.TNode
+		options   *tOptions
+		entries   []*ptool.TNode
+		resolved  bool
+		defined   bool
+		inUse     bool
+		processed bool
+		data      interface{}
 	}
 
 	// TSymbolTable -
@@ -50,6 +51,18 @@ type (
 // NewSymbolTable -
 func NewSymbolTable() *TSymbolTable {
 	return &TSymbolTable{data: map[string]*TVar{}}
+}
+
+// Get -
+func (o *TSymbolTable) Get(name string) (*TVar, error) {
+	if len(name) == 0 {
+		return nil, fmt.Errorf("get: variable name is empty")
+	}
+	ret := o.data[name]
+	if ret == nil {
+		return nil, fmt.Errorf("get: unknown symbol name %q", name)
+	}
+	return ret, nil
 }
 
 // Update -
@@ -102,8 +115,30 @@ func (o *TParser) Parse(src string) []error {
 	return nil
 }
 
+func decodeRuneOrCode(s string) (rune, error) {
+	ret := utf8.RuneError
+	err := error(nil)
+	switch utf8.RuneCountInString(s) {
+	default:
+		err = fmt.Errorf("decodeRuneOrCode: something went wrong")
+	case 1:
+		ret, _ = utf8.DecodeRuneInString(s)
+	case 2:
+		x, err := strconv.ParseInt(s, 16, 16)
+		return rune(x), err
+	}
+	if ret == utf8.RuneError {
+		err = fmt.Errorf("decodeRuneOrCode: rune error")
+	}
+	return ret, err
+}
+
 // Build -
 func (o *TParser) Build() []error {
+	if o.tree == nil {
+		return []error{fmt.Errorf("parse tree is <nil>")}
+	}
+
 	symbols := NewSymbolTable()
 
 	useMode := false
@@ -158,7 +193,7 @@ func (o *TParser) Build() []error {
 				if len(node.Links) > 1 {
 					variable.label = node.Links[1].Value // "string"
 				}
-			case "string":
+			case "string1", "string2":
 			case "sequence":
 				variable.seqNode = node
 				elem := &TSequence{}
@@ -225,18 +260,23 @@ func (o *TParser) Build() []error {
 				elem := &TKeepNode{}
 				elem.name = node.Links[0].Value
 				element.Append(elem)
-			case "rune":
+			case "rune", "runeCode":
 				elem := &TRune{TRepeat: repeat}
 				repeat.Repeat(1, 1)
-				elem.r, _ = utf8.DecodeRuneInString(node.Value)
+				r, err := decodeRuneOrCode(node.Value)
+				errors.Add(err)
+				elem.r = r
 				element.Append(elem)
 			case "range":
 				elem := &TRange{TRepeat: repeat}
 				repeat.Repeat(1, 1)
-				elem.from, _ = utf8.DecodeRuneInString(node.Links[0].Value)
-				elem.to, _ = utf8.DecodeRuneInString(node.Links[1].Value)
+				r1, err1 := decodeRuneOrCode(node.Links[0].Value)
+				r2, err2 := decodeRuneOrCode(node.Links[1].Value)
+				errors.Add(err1, err2)
+				elem.from = r1
+				elem.to = r2
 				element.Append(elem)
-			case "string":
+			case "string1", "string2":
 				elem := &TString{TRepeat: repeat}
 				repeat.Repeat(1, 1)
 				elem.str = node.Value
@@ -260,8 +300,12 @@ func (o *TParser) Build() []error {
 		slice = append(slice, v.name)
 	}
 	sort.Strings(slice)
+
+	o.symbols = symbols
+
+	entries := []*TVar{}
 	for _, name := range slice {
-		v := symbols.data[name]
+		v := o.symbols.data[name]
 		fmt.Printf("--> %v %q, defined:%v\n", v.name, v.label, v.defined)
 		if v.element != nil {
 			fmt.Printf("element: %v\n", v.element)
@@ -269,7 +313,64 @@ func (o *TParser) Build() []error {
 		if !v.defined {
 			errors.Addf("udefined variable %v, %q", v.name, v.label)
 		}
+		if v.inUse {
+			entries = append(entries, v)
+			v.resolved = true
+			errs := o.resolveNodes(v.element)
+			if len(errs) == 0 {
+				fmt.Printf("resolved: %v\n", v.element)
+			}
+			errors.Add(errs...)
+		}
 	}
 
+	return errors.Get()
+}
+
+func (o *TParser) resolveNodes(elem interface{}) []error {
+	errors := errors.NewErrors()
+	switch t := elem.(type) {
+	default:
+		errors.Addf("resolveNodes: an unsupported element type %T", t)
+	case *TSequence:
+		for _, v := range t.elements {
+			errs := o.resolveNodes(v)
+			errors.Add(errs...)
+		}
+	case *TSplit:
+		for _, v := range t.elements {
+			errs := o.resolveNodes(v)
+			errors.Add(errs...)
+		}
+	case *TKeepValue:
+		for _, v := range t.elements {
+			errs := o.resolveNodes(v)
+			errors.Add(errs...)
+		}
+	case *TIdent:
+		if t.element == nil {
+			v, err := o.symbols.Get(t.name)
+			if err != nil {
+				errors.Add(err)
+				break
+			}
+			if v.element == nil {
+				errors.Addf("something went wrong var %q", v.name)
+				break
+			}
+			// errors.Addf("ident %q", v.name)
+			t.element = v.element
+			if !v.resolved {
+				v.resolved = true
+				errs := o.resolveNodes(v.element)
+				errors.Add(errs...)
+			}
+		}
+	case *TRange:
+	case *TRune:
+	case *TString:
+	case *TKeepNode:
+		errors.Addf("KeepNode is not supported yet")
+	}
 	return errors.Get()
 }

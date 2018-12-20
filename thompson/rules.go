@@ -8,7 +8,6 @@ import (
 
 var parser *ptool.TParser
 
-// repeatList      = @ident | @keepNode | @split | seq | @keepValue | @term;
 var parserRules = `
 entry           = '' {';'} (decl|useBelowMode) {decl|useBelowMode} $;
 
@@ -55,15 +54,18 @@ repeatList = '';
 comment         = '//' # {# !\x0a # !$ # anyRune };
 
 range           = r # '-' # r;
-r               = \x27 # !\x27 #@rune # \x27;
+r               = (\x27 # !\x27 #@rune # \x27) | ('\x'#@runeCode);
 rune            = anyRune;
-str             = \x27 # @string # \x27;
-string          = {# !\x27 # anyRune };
+runeCode        = hexDigit hexDigit;
+str             = '"' # @string1 # '"' | \x27 # @string2 # \x27;
+string1         = {# !'"' # anyRune };
+string2         = {# !\x27 # anyRune };
 ident           = letter#{#letter|digit};
 sysIdent        = '$'#letter#{#letter|digit};
 number          = digit#{#digit};
 
 eof             = '$eof' | '$EOF';
+hexDigit        = '0'..'9' | 'a'..'f' | 'A'..'F';
 digit           = '0'..'9';
 letter          = 'a'..'z'|'A'..'Z'|'_';
 anyRune         = \x00..\xff;

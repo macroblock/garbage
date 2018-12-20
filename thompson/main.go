@@ -4,8 +4,6 @@ import (
 	"fmt"
 
 	"github.com/macroblock/garbage/zlog"
-
-	"github.com/macroblock/imed/pkg/ptool"
 )
 
 var (
@@ -50,13 +48,26 @@ func (o *TStringStack) Pop() *string {
 }
 
 var testProg = `
-+++ x = a b @c +(d y [a1 a2 a3] z) [ e f g ];
++++ entry01 = +[ a b ];
++++ entry02 = sysIdent;
+
+a = 'f';
+b = 'g';
+
 // comment here
-    z = asdf;
---:
-+++ a 'test1' = *'&' 'string literal' 'a'-'z';
---:
-    last 'label' = ?a <some elements> finalizator;
+y "test" = unk id;
+
+string          = [('"'<*anyRune>!'"') ("'"<*anyRune>!"'")];
+
+dent            = letter *[letter digit];
+sysIdent        = '$' letter *[letter digit];
+number          = +digit;
+
+eof             = ['$eof' '$EOF'];
+hexDigit        = ['0'-'9' 'a'-'f' 'A'-'F'];
+digit           = '0'-'9';
+letter          = ['a'-'z' 'A'-'Z' '_'];
+anyRune         = \x00-\xfe;
 `
 
 func main() {
@@ -65,24 +76,18 @@ func main() {
 	if parser == nil {
 		return
 	}
-	tree, err := parser.Parse(testProg)
-	if err != nil {
-		fmt.Println("\n*TParser.Parse error: ", err)
-		return
-	}
-	fmt.Println(ptool.TreeToString(tree, parser.ByID))
+	// tree, err := parser.Parse(testProg)
+	// if err != nil {
+	// 	fmt.Println("\n*TParser.Parse error: ", err)
+	// 	return
+	// }
+	// fmt.Println(ptool.TreeToString(tree, parser.ByID))
 
 	parser := NewParser()
 	errors := parser.Parse(testProg)
-	if errors != nil {
-		print("--> parse error(s):", errors...)
-		return
-	}
+	log.Notice(errors, "parse error(s):")
 	errors = parser.Build()
-	if errors != nil {
-		print("--> build error(s):", errors...)
-		return
-	}
+	log.Notice(errors, "build error(s):")
 }
 
 func print(str string, errors ...error) {
