@@ -7,35 +7,40 @@ import (
 )
 
 type (
+	// IElem -
+	IElem interface {
+		String() string
+	}
+
 	// ISeq -
 	ISeq interface {
-		Append(interface{})
-		Repeat(int, int)
+		Append(IElem)
+		Repeat(int, int, bool)
 	}
 
 	// TSequence -
 	TSequence struct {
 		TRepeat
-		elements []interface{}
+		elements []IElem
 	}
 
 	// TSplit -
 	TSplit struct {
 		TRepeat
-		elements []interface{}
+		elements []IElem
 	}
 
 	// TKeepValue -
 	TKeepValue struct {
 		TRepeat
-		elements []interface{}
+		elements []IElem
 	}
 
 	// TIdent -
 	TIdent struct {
 		TRepeat
 		name    string
-		element interface{}
+		element IElem
 	}
 
 	// TRange -
@@ -65,22 +70,24 @@ type (
 	// TRepeat -
 	TRepeat struct {
 		from, to int
+		lazy     bool
 	}
 )
 
 // Append -
-func (o *TSequence) Append(v interface{}) { o.elements = appendElement(o.elements, v) }
+func (o *TSequence) Append(v IElem) { o.elements = appendElement(o.elements, v) }
 
 // Append -
-func (o *TSplit) Append(v interface{}) { o.elements = appendElement(o.elements, v) }
+func (o *TSplit) Append(v IElem) { o.elements = appendElement(o.elements, v) }
 
 // Append -
-func (o *TKeepValue) Append(v interface{}) { o.elements = appendElement(o.elements, v) }
+func (o *TKeepValue) Append(v IElem) { o.elements = appendElement(o.elements, v) }
 
 // Repeat -
-func (o *TRepeat) Repeat(from, to int) {
+func (o *TRepeat) Repeat(from, to int, lazy bool) {
 	o.from = from
 	o.to = to
+	o.lazy = lazy
 }
 
 // String -
@@ -114,7 +121,7 @@ func (o *TKeepNode) String() string { return fmt.Sprintf("@%v", o.name) }
 
 // -----------------------------------------------------------------------
 
-func appendElement(elements []interface{}, v interface{}) []interface{} {
+func appendElement(elements []IElem, v IElem) []IElem {
 	if v == nil {
 		fmt.Println("sequence append: v is nil")
 		return elements
@@ -122,7 +129,7 @@ func appendElement(elements []interface{}, v interface{}) []interface{} {
 	return append(elements, v)
 }
 
-func elemsToStr(elements []interface{}) string {
+func elemsToStr(elements []IElem) string {
 	slice := []string{}
 	for _, v := range elements {
 		slice = append(slice, fmt.Sprintf("%v", v))
@@ -139,11 +146,15 @@ func repeatXtoStr(x int) string {
 }
 func (o TRepeat) String() string {
 	from := repeatXtoStr(o.from)
+	lazy := "!"
+	if o.lazy {
+		lazy = "?"
+	}
 	if o.from == o.to {
 		if o.from == 1 {
 			return ""
 		}
-		return from
+		return from + lazy
 	}
-	return fmt.Sprintf("%v-%v", from, repeatXtoStr(o.to))
+	return fmt.Sprintf("%v-%v%v", from, repeatXtoStr(o.to), lazy)
 }

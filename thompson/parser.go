@@ -22,7 +22,7 @@ type (
 	TVar struct {
 		name      string
 		label     string
-		element   interface{}
+		element   IElem
 		seqNode   *ptool.TNode
 		options   *tOptions
 		entries   []*ptool.TNode
@@ -134,9 +134,9 @@ func decodeRuneOrCode(s string) (rune, error) {
 }
 
 // Build -
-func (o *TParser) Build() []error {
+func (o *TParser) Build() (IElem, []error) {
 	if o.tree == nil {
-		return []error{fmt.Errorf("parse tree is <nil>")}
+		return nil, []error{fmt.Errorf("parse tree is <nil>")}
 	}
 
 	symbols := NewSymbolTable()
@@ -197,7 +197,7 @@ func (o *TParser) Build() []error {
 			case "sequence":
 				variable.seqNode = node
 				elem := &TSequence{}
-				elem.Repeat(1, 1)
+				elem.Repeat(1, 1, false)
 				errs := parsSequence(elem, node)
 				errors.Add(errs.Get()...)
 				variable.element = elem
@@ -210,49 +210,49 @@ func (o *TParser) Build() []error {
 
 	parsSequence = func(element ISeq, root *ptool.TNode) *errors.TErrors {
 		errors := errors.NewErrors()
-		repeat := TRepeat{1, 1}
+		repeat := TRepeat{1, 1, false}
 		for _, node := range root.Links {
 			nodeType := o.parser.ByID(node.Type)
 			switch nodeType {
 			default:
 				errors.Addf("@parseVarsInSequence an unsupported element %q", nodeType)
-				repeat.Repeat(1, 1)
+				repeat.Repeat(1, 1, false)
 				continue
 			case "comment":
 			case "repeat_01":
-				repeat = TRepeat{0, 1}
+				repeat = TRepeat{0, 1, false}
 			case "repeat_0f":
-				repeat = TRepeat{0, -1}
+				repeat = TRepeat{0, -1, len(node.Links) != 0}
 			case "repeat_1f":
-				repeat = TRepeat{1, -1}
+				repeat = TRepeat{1, -1, len(node.Links) != 0}
 			case "repeat_xy":
 				from, err1 := strconv.Atoi(node.Links[0].Value)
 				to, err2 := strconv.Atoi(node.Links[1].Value)
 				errors.Add(err1, err2)
-				repeat = TRepeat{from, to}
+				repeat = TRepeat{from, to, len(node.Links) != 0}
 			case "repeat_xf":
 				from, err := strconv.Atoi(node.Links[0].Value)
 				errors.Add(err)
-				repeat = TRepeat{from, -1}
+				repeat = TRepeat{from, -1, len(node.Links) != 0}
 			case "repeat_x":
 				from, err := strconv.Atoi(node.Links[0].Value)
 				errors.Add(err)
-				repeat = TRepeat{from, from}
+				repeat = TRepeat{from, from, len(node.Links) != 0}
 			case "sequence":
 				elem := &TSequence{TRepeat: repeat}
-				repeat.Repeat(1, 1)
+				repeat.Repeat(1, 1, false)
 				errs := parsSequence(elem, node)
 				errors.Add(errs.Get()...)
 				element.Append(elem)
 			case "split":
 				elem := &TSplit{TRepeat: repeat}
-				repeat.Repeat(1, 1)
+				repeat.Repeat(1, 1, false)
 				errs := parsSequence(elem, node)
 				errors.Add(errs.Get()...)
 				element.Append(elem)
 			case "keepValue":
 				elem := &TKeepValue{TRepeat: repeat}
-				repeat.Repeat(1, 1)
+				repeat.Repeat(1, 1, false)
 				errs := parsSequence(elem, node)
 				errors.Add(errs.Get()...)
 				element.Append(elem)
@@ -262,14 +262,14 @@ func (o *TParser) Build() []error {
 				element.Append(elem)
 			case "rune", "runeCode":
 				elem := &TRune{TRepeat: repeat}
-				repeat.Repeat(1, 1)
+				repeat.Repeat(1, 1, false)
 				r, err := decodeRuneOrCode(node.Value)
 				errors.Add(err)
 				elem.r = r
 				element.Append(elem)
 			case "range":
 				elem := &TRange{TRepeat: repeat}
-				repeat.Repeat(1, 1)
+				repeat.Repeat(1, 1, false)
 				r1, err1 := decodeRuneOrCode(node.Links[0].Value)
 				r2, err2 := decodeRuneOrCode(node.Links[1].Value)
 				errors.Add(err1, err2)
@@ -278,14 +278,14 @@ func (o *TParser) Build() []error {
 				element.Append(elem)
 			case "string1", "string2":
 				elem := &TString{TRepeat: repeat}
-				repeat.Repeat(1, 1)
+				repeat.Repeat(1, 1, false)
 				elem.str = node.Value
 				element.Append(elem)
 			case "ident":
 				err := symbols.Update(&TVar{name: node.Value, defined: false})
 				errors.Add(err)
 				elem := &TIdent{TRepeat: repeat}
-				repeat.Repeat(1, 1)
+				repeat.Repeat(1, 1, false)
 				elem.name = node.Value
 				element.Append(elem)
 			}
@@ -324,7 +324,21 @@ func (o *TParser) Build() []error {
 		}
 	}
 
-	return errors.Get()
+	ret := IElem(nil)
+	switch len(entries) {
+	case 0:
+	case 1:
+		ret = entries[0].element
+	default:
+		split := &TSplit{}
+		split.Repeat(1, 1, false)
+		for _, v := range entries {
+			split.Append(v.element)
+		}
+		ret = split
+	}
+
+	return ret, errors.Get()
 }
 
 func (o *TParser) resolveNodes(elem interface{}) []error {

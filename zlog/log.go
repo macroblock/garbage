@@ -127,6 +127,7 @@ func getCause(cause interface{}) (string, bool) {
 			ret = strings.Join(slice, "\n")
 			return ret, true
 		}
+		return fmt.Sprint(v), true
 	case nil:
 		return "", false
 	case bool:

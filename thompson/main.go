@@ -10,43 +10,6 @@ var (
 	log = zlog.Instance()
 )
 
-type (
-	// TState -
-	TState struct {
-		op byte
-
-		links    []*TState
-		lastList int
-	}
-
-	// TFragment -
-	TFragment struct {
-		in  *TState
-		out []*TState
-	}
-
-	// TStringStack -
-	TStringStack []*string
-)
-
-// NewStringStack -
-func NewStringStack() *TStringStack {
-	return &TStringStack{}
-}
-
-// Push -
-func (o *TStringStack) Push(val *string) {
-	*o = append(*o, val)
-}
-
-// Pop -
-func (o *TStringStack) Pop() *string {
-	i := len(*o) - 1
-	ret := (*o)[i]
-	*o = (*o)[:i]
-	return ret
-}
-
 var testProg = `
 +++ entry01 = +[ a b ];
 +++ entry02 = sysIdent;
@@ -55,9 +18,9 @@ a = 'f';
 b = 'g';
 
 // comment here
-y "test" = unk id;
+// y "test" = unk id;
 
-string          = [('"'<*anyRune>!'"') ("'"<*anyRune>!"'")];
+string          = [('"'<*?anyRune>'"') ("'"<*? anyRune>"'")];
 
 dent            = letter *[letter digit];
 sysIdent        = '$' letter *[letter digit];
@@ -86,8 +49,9 @@ func main() {
 	parser := NewParser()
 	errors := parser.Parse(testProg)
 	log.Notice(errors, "parse error(s):")
-	errors = parser.Build()
+	elem, errors := parser.Build()
 	log.Notice(errors, "build error(s):")
+	log.Notice(elem, "result:")
 }
 
 func print(str string, errors ...error) {

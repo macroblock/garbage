@@ -43,13 +43,13 @@ useOn           = '+++';
 useOff          = '---';
 
 repeat          = [ @repeat_01 | @repeat_0f | @repeat_1f | @repeat_xy | @repeat_xf | @repeat_x ];
-repeat_01       = '?' # repeatList;
-repeat_0f       = '*' # repeatList;
-repeat_1f       = '+' # repeatList;
-repeat_xy       = @number # '-' # @number # repeatList;
-repeat_xf       = @number # ('-'|'+') # repeatList;
-repeat_x        = @number # repeatList;
-repeatList = '';
+repeat_01       = '?';
+repeat_0f       = '*' # [@lazy];
+repeat_1f       = '+' # [@lazy];
+repeat_xy       = @number # '-' # @number # [@lazy];
+repeat_xf       = @number # ('-'|'+') # [@lazy];
+repeat_x        = @number # [@lazy];
+lazy            = '?'; 
 
 comment         = '//' # {# !\x0a # !$ # anyRune };
 
