@@ -1,7 +1,6 @@
 package main
 
 import (
-	o "github.com/golang/freetype/example/round"
 	"github.com/macroblock/garbage/thompson/errors"
 )
 
@@ -9,6 +8,7 @@ type tOp int
 
 const (
 	_ = iota
+	opTemp
 	opMatchState
 	opRune
 	opAnd
@@ -21,85 +21,100 @@ const (
 // TState -
 type TState struct {
 	cmd      tOp
-	r        rune
+	element  IElem
 	out      []*TState
 	lastList int
 }
 
 // TFrag -
 type TFrag struct {
-	in  *TState
-	out []**TState
+	first *TState
+	last  []*TState
 }
 
-func appendState(frag *TFrag, state *TState) {
-	for i := range frag.out {
-		frag.out[i] = state
+// NewState -
+func NewState(op tOp) *TState {
+	ret := &TState{cmd: op, out: []*TState{nil}}
+	return ret
+}
+
+// NewFrag -
+func NewFrag(state *TState) *TFrag {
+	ret := &TFrag{first: state}
+	ret.last = append(ret.last, state)
+	return ret
+}
+
+func appendFrag(frag *TFrag, fr *TFrag) *TFrag {
+	// if frag == nil {
+	// 	return fr
+	// }
+	for _, state := range frag.last {
+		for i := range state.out {
+			state.out[i] = fr.first
+		}
 	}
+	frag.last = fr.last
+	// frag.out = frag.out[:0]
+	// for i := range fr.out {
+	// 	frag.out = append(frag.out, fr.out[i])
+	// }
+	return frag
+}
+
+func expandFrag(frag *TFrag, fr []*TFrag) *TFrag {
+	outList := []**TState{}
+	frag.last = make([]**TState, len(fr))
+	for i := range fr {
+		// frag.out = append(frag.out, nil)
+		*frag.last[i] = fr[i].first
+		outList = append(outList, fr[i].last...)
+	}
+	frag.last = outList
+	return frag
 }
 
 // Thompson -
 func Thompson(element interface{}) (*TFrag, []error) {
 	errors := errors.NewErrors()
-	frag := &TFrag{}
-	switch t := elem.(type) {
+	frag := NewFrag(NewState(opTemp))
+	switch t := element.(type) {
 	default:
 		errors.Addf("thompson: an unsupported element type %T", t)
 	case *TSequence:
 		if len(t.elements) == 0 {
 			return nil, nil
 		}
-		fr, errs := Thompson(t.elements[0])
-		errors.Add(errs...)
-		if err != nil || in == nil {
-			return err
-		}
-		fr.cmd = opAnd
-		frag.in = in
-		for _, v := range t.elements[1:] {
-			fr, errs = Thompson(v)
+		for _, v := range t.elements {
+			fr, errs := Thompson(v)
 			errors.Add(errs...)
 			if errs != nil || fr == nil {
 				continue
 			}
-			fr.cmd = opAnd
+			frag = appendFrag(frag, fr)
 		}
 	case *TSplit:
+		frags := []*TFrag{}
 		for _, v := range t.elements {
-			errs := o.resolveNodes(v)
+			fr, errs := Thompson(v)
 			errors.Add(errs...)
+			if errs != nil || fr == nil {
+				continue
+			}
+			frags = append(frags, fr)
 		}
+		frag = expandFrag(frag, frags)
 	case *TKeepValue:
-		for _, v := range t.elements {
-			errs := o.resolveNodes(v)
-			errors.Add(errs...)
-		}
+		errors.Addf("KeepValue is not supported yet")
 	case *TIdent:
-		if t.element == nil {
-			v, err := o.symbols.Get(t.name)
-			if err != nil {
-				errors.Add(err)
-				break
-			}
-			if v.element == nil {
-				errors.Addf("something went wrong var %q", v.name)
-				break
-			}
-			// errors.Addf("ident %q", v.name)
-			t.element = v.element
-			if !v.resolved {
-				v.resolved = true
-				errs := o.resolveNodes(v.element)
-				errors.Add(errs...)
-			}
-		}
+		state := NewState(opAnd)
+		frag.first = state
 	case *TRange:
 	case *TRune:
 	case *TString:
 	case *TKeepNode:
 		errors.Addf("KeepNode is not supported yet")
 	}
-	return errors.Get()
+	return nil, errors.Get()
 
-	return nil, nil
 }
