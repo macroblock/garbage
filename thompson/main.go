@@ -11,26 +11,28 @@ var (
 )
 
 var testProg = `
-+++ entry01 = +[ a b ];
-+++ entry02 = sysIdent;
++++ entry01 = x [a b] z;
+// +++ entry02 = sysIdent;
 
 a = 'f';
 b = 'g';
+x = 'x';
+z = 'z';
 
 // comment here
 // y "test" = unk id;
 
-string          = [('"'<*?anyRune>'"') ("'"<*? anyRune>"'")];
+// string          = [('"'<*?anyRune>'"') ("'"<*? anyRune>"'")];
 
-dent            = letter *[letter digit];
-sysIdent        = '$' letter *[letter digit];
-number          = +digit;
+// dent            = letter *[letter digit];
+// sysIdent        = '$' letter *[letter digit];
+// number          = +digit;
 
-eof             = ['$eof' '$EOF'];
-hexDigit        = ['0'-'9' 'a'-'f' 'A'-'F'];
-digit           = '0'-'9';
-letter          = ['a'-'z' 'A'-'Z' '_'];
-anyRune         = \x00-\xfe;
+// eof             = ['$eof' '$EOF'];
+// hexDigit        = ['0'-'9' 'a'-'f' 'A'-'F'];
+// digit           = '0'-'9';
+// letter          = ['a'-'z' 'A'-'Z' '_'];
+// anyRune         = \x00-\xfe;
 `
 
 func main() {
@@ -52,6 +54,11 @@ func main() {
 	elem, errors := parser.Build()
 	log.Notice(errors, "build error(s):")
 	log.Notice(elem, "result:")
+	frag, errors := Thompson(elem)
+	log.Notice(errors, "thompson error(s):")
+	if frag != nil {
+		log.Notice(frag.first, "result2:")
+	}
 }
 
 func print(str string, errors ...error) {
