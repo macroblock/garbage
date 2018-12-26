@@ -10,6 +10,7 @@ type (
 	// IElem -
 	IElem interface {
 		String() string
+		Name() string
 	}
 
 	// ISeq -
@@ -89,6 +90,52 @@ func (o *TRepeat) Repeat(from, to int, lazy bool) {
 	o.to = to
 	o.lazy = lazy
 }
+
+// Name -
+func (o *TSequence) Name() string {
+	if o == nil {
+		return fmt.Sprint("sequence nil")
+	}
+	return fmt.Sprintf("%v(%v)", o.TRepeat, "sequence")
+}
+
+// Name -
+func (o *TSplit) Name() string {
+	if o == nil {
+		return fmt.Sprint("split nil")
+	}
+	return fmt.Sprintf("%v[%v]", o.TRepeat, "split")
+}
+
+// Name -
+func (o *TKeepValue) Name() string {
+	if o == nil {
+		return fmt.Sprint("keep value nil")
+	}
+	return fmt.Sprintf("%v<%v>", o.TRepeat, "keep value")
+}
+
+// Name -
+func (o *TIdent) Name() string { return fmt.Sprintf("%v%v", o.TRepeat, o.name) }
+
+// Name -
+func (o *TRange) Name() string {
+	if o.from == o.to {
+		return fmt.Sprintf("%v%q", o.TRepeat, o.from)
+	}
+	return fmt.Sprintf("%v%q-%q", o.TRepeat, o.from, o.to)
+}
+
+// Name -
+func (o *TRune) Name() string { return fmt.Sprintf("%v%q", o.TRepeat, o.r) }
+
+// Name -
+func (o *TString) Name() string { return fmt.Sprintf("%v\"%v\"", o.TRepeat, o.str) }
+
+// Name -
+func (o *TKeepNode) Name() string { return fmt.Sprintf("@%v", o.name) }
+
+// -----------------------------------------------------------------------
 
 // String -
 func (o *TSequence) String() string { return fmt.Sprintf("%v(%v)", o.TRepeat, elemsToStr(o.elements)) }

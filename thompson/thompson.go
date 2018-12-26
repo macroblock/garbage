@@ -45,9 +45,14 @@ func (o *TState) String() string {
 		ret += "<finish>"
 	}
 	for _, v := range o.out {
-		ret += fmt.Sprintf("%v\n", v)
+		ret += fmt.Sprintf("%v\n<cr>", v)
 	}
 	return ret
+}
+
+// Name -
+func (o *TState) Name() string {
+	return o.element.Name()
 }
 
 // NewState -

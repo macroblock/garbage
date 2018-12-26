@@ -58,6 +58,9 @@ func main() {
 	log.Notice(errors, "thompson error(s):")
 	if frag != nil {
 		log.Notice(frag.first, "result2:")
+		viz := newViz(frag.first)
+		_ = viz
+		fmt.Println(viz.String())
 	}
 }
 
