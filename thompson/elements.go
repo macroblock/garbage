@@ -91,12 +91,14 @@ func (o *TRepeat) Repeat(from, to int, lazy bool) {
 	o.lazy = lazy
 }
 
+// -------------------------------------------------------------------------------
+
 // Name -
 func (o *TSequence) Name() string {
 	if o == nil {
 		return fmt.Sprint("sequence nil")
 	}
-	return fmt.Sprintf("%v(%v)", o.TRepeat, "sequence")
+	return fmt.Sprintf("%v(%v):%v", o.TRepeat, "sequence", len(o.elements))
 }
 
 // Name -

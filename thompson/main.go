@@ -11,13 +11,17 @@ var (
 )
 
 var testProg = `
-+++ entry01 = x [a b] z;
++++ entry01 = x ['1234' ('4321' 'abcd' 'aabcc') ('aaaaaaa' 'bbb')] zz ;
+// [ '9' '8' '7'] [ '3' '2']a b c;
 // +++ entry02 = sysIdent;
-
-a = 'f';
-b = 'g';
+seq = '1' '2' '3';
+a = 'a';
+b = 'b';
+c = 'c';
+d = 'd';
 x = 'x';
 z = 'z';
+zz = 'zz';
 
 // comment here
 // y "test" = unk id;

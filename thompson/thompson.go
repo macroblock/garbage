@@ -40,19 +40,26 @@ type TFrag struct {
 
 // String -
 func (o *TState) String() string {
-	ret := fmt.Sprintf("%T:%v\n", o.element, o.element)
-	if len(o.out) == 0 {
-		ret += "<finish>"
-	}
-	for _, v := range o.out {
-		ret += fmt.Sprintf("%v\n<cr>", v)
-	}
+	// ret := fmt.Sprintf("%T:%v\n", o.element, o.element)
+	// if len(o.out) == 0 {
+	// 	ret += "<finish>"
+	// }
+	// for _, v := range o.out {
+	// 	ret += fmt.Sprintf("%v\n<cr>", v)
+	// }
+	ret := fmt.Sprintf("%v", o.Name())
+	// ret := fmt.Sprintf("%v:%v", o.Name(), len(o.out))
 	return ret
 }
 
 // Name -
 func (o *TState) Name() string {
-	return o.element.Name()
+	// ret := fmt.Sprintf("%v:%v", o.element.Name(), len(o.out))
+	ret := fmt.Sprintf("%v", o.element.Name())
+	// if len(o.out) > 0 {
+	// 	ret = fmt.Sprintf("%v>%v", ret, o.out[0].element.Name())
+	// }
+	return ret
 }
 
 // NewState -
@@ -125,6 +132,7 @@ func Thompson(element interface{}) (*TFrag, []error) {
 			return nil, nil
 		}
 		for _, v := range t.elements {
+			fmt.Println("#### trying to append:", v)
 			fr, errs := Thompson(v)
 			errors.Add(errs...)
 			if errs != nil || fr == nil {

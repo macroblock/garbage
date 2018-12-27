@@ -48,8 +48,19 @@ func (o *tBranch) Size() (int, int) {
 
 func (o *tBranch) Render() []string {
 	ret := []string{}
+	w := o.w
 	for _, v := range o.items {
-		ret = append(ret, v.Render()...)
+		for _, s := range v.Render() {
+			total := w - len(s)
+			half := (w - len(s)) / 2
+			preGap := misc.MaxInt(0, half)
+			postGap := misc.MaxInt(0, total-half)
+			ret = append(ret,
+				strings.Repeat(".", preGap)+s+
+					// fmt.Sprintf("-%vx%v", o.w, o.h)+
+					strings.Repeat(".", postGap),
+			)
+		}
 	}
 	return ret
 }
@@ -62,20 +73,31 @@ func (o *tSplit) Size() (int, int) {
 	return o.w, o.h
 }
 func (o *tSplit) Render() []string {
-	ret := []string{}
 	h := o.h
-	for _, v := range o.branches {
+	ret := make([]string, o.h)
+	n := o.h - 1
+	for i, v := range o.branches {
 		w, _ := v.Size()
-		ret = append(ret, v.Render()...)
-		for i := 0; i < h; i++ {
-			if i > len(ret)-1 {
-				ret = append(ret, strings.Repeat("+", w))
+		preGap := misc.MaxInt(0, w/2-1)
+		postGap := misc.MaxInt(0, w-w/2)
+		switch i {
+		default:
+			ret[0] += strings.Repeat("-", preGap) + "V" + strings.Repeat("-", postGap)
+			ret[n] += strings.Repeat("-", preGap) + "A" + strings.Repeat("-", postGap)
+		case 0:
+			ret[0] += strings.Repeat(".", preGap) + "/" + strings.Repeat("-", postGap)
+			ret[n] += strings.Repeat(".", preGap) + "\\" + strings.Repeat("-", postGap)
+		case len(o.branches) - 1:
+			ret[0] += strings.Repeat("-", preGap) + "\\" + strings.Repeat(".", postGap)
+			ret[n] += strings.Repeat("-", preGap) + "/" + strings.Repeat(".", postGap)
+		}
+		br := v.Render()
+		for i := 0; i < h-2; i++ {
+			if i < len(br) {
+				ret[i+1] += br[i]
 				continue
 			}
-			len := len(ret[i])
-			if len < w {
-				ret[i] += strings.Repeat("+", w-len)
-			}
+			ret[i+1] += strings.Repeat(".", preGap) + "|" + strings.Repeat(".", postGap)
 		}
 	}
 	return ret
@@ -86,7 +108,7 @@ func newTerm(text string) *tTerm {
 }
 
 func (o *tTerm) Size() (int, int) {
-	return len(o.name), 1
+	return len(o.name) + 2, 1
 }
 
 func (o *tTerm) Render() []string {
@@ -119,11 +141,13 @@ func unroll0(state *TState) []*TState {
 		return nil
 	}
 	ret := []*TState{}
-	for state != nil && len(state.out) > 0 {
-		if len(state.out) == 0 {
-			fmt.Printf("!!!!unroll0 len!!!!, %v\n", state)
-		}
+	for state != nil {
 		ret = append(ret, state)
+		if len(state.out) == 0 {
+			// fmt.Printf("!!!!unroll0 len!!!!, %v\n", state)
+			state = nil
+			continue
+		}
 		state = state.out[0]
 	}
 	return ret
@@ -134,15 +158,17 @@ func (o *tViz) buildBranch(state *TState, stopList []*TState) (*tBranch, *TState
 		fmt.Printf("!!!!branch!!!!")
 		return nil, nil
 	}
-	maxW, maxH := 1, 1
+	maxW, maxH := 0, 0
 	branch := &tBranch{}
+	fmt.Println("stop list", stopList)
 	for notInStopList(state, stopList) {
+		fmt.Println("    state ", state.Name())
 		term := newTerm(state.Name())
 		branch.Add(term)
 
 		w, h := term.Size()
 		maxW = misc.MaxInt(maxW, w)
-		maxH = misc.MaxInt(maxH, h)
+		maxH += h
 
 		if len(state.out) > 1 {
 			split, st := o.buildSplit(state)
@@ -151,7 +177,7 @@ func (o *tViz) buildBranch(state *TState, stopList []*TState) (*tBranch, *TState
 
 			w, h = split.Size()
 			maxW = misc.MaxInt(maxW, w)
-			maxH = misc.MaxInt(maxH, h)
+			maxH += h
 			continue
 		}
 		if len(state.out) == 0 {
@@ -162,6 +188,7 @@ func (o *tViz) buildBranch(state *TState, stopList []*TState) (*tBranch, *TState
 	}
 	branch.w = maxW
 	branch.h = maxH
+	fmt.Println("<<<<<< out")
 	return branch, state
 }
 
@@ -175,6 +202,7 @@ func (o *tViz) buildSplit(state *TState) (*tSplit, *TState) {
 		return nil, nil
 	}
 	unrolled := unroll0(state.out[0])
+	fmt.Println("     ----unrolled", unrolled)
 	split := &tSplit{}
 	br1, st := o.buildBranch(state.out[1], unrolled)
 	stopNode := []*TState{st}
@@ -196,7 +224,7 @@ func (o *tViz) buildSplit(state *TState) (*tSplit, *TState) {
 		maxH = misc.MaxInt(maxH, h)
 	}
 	split.w = maxW
-	split.h = maxH
+	split.h = maxH + 2 // +2 for drawing header and footer
 	return split, st
 }
 
@@ -204,19 +232,3 @@ func (o *tViz) String() string {
 	list := o.head.Render()
 	return strings.Join(list, "\n")
 }
-
-// func (o *tViz) render(items ...*tItem) string {
-// 	str := ""
-// 	for _, item := range items {
-// 		if item == nil {
-// 			str += strings.Repeat(" ", 12)
-// 			continue
-// 		}
-// 		if len(item.branches) == 0 {
-// 			str += fmt.Sprintf("%12v", item.name)
-// 			continue
-// 		}
-// 		str += "!!!ERROR!!!"
-// 	}
-// 	return str
-// }
