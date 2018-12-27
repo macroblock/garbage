@@ -11,7 +11,7 @@ var (
 )
 
 var testProg = `
-+++ entry01 = x ['1234' ('4321' 'abcd' 'aabcc') ('aaaaaaa' 'bbb')] zz ;
++++ entry01 = x ['1234' ('4321' 'abcd' [ 'x' 'y' 'z' ] 'aabcc' '0000' ) ( ['left' 'center' 'right' ] 'aaaaaaa' 'bbb')] zz ;
 // [ '9' '8' '7'] [ '3' '2']a b c;
 // +++ entry02 = sysIdent;
 seq = '1' '2' '3';

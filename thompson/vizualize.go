@@ -51,15 +51,14 @@ func (o *tBranch) Render() []string {
 	w := o.w
 	for _, v := range o.items {
 		for _, s := range v.Render() {
-			total := w - len(s)
-			half := (w - len(s)) / 2
-			preGap := misc.MaxInt(0, half)
-			postGap := misc.MaxInt(0, total-half)
-			ret = append(ret,
-				strings.Repeat(".", preGap)+s+
-					// fmt.Sprintf("-%vx%v", o.w, o.h)+
-					strings.Repeat(".", postGap),
-			)
+			// total := w - len(s)
+			// half := (w - len(s)) / 2
+			// preGap := misc.MaxInt(0, half)
+			// postGap := misc.MaxInt(0, total-half)
+			ret = append(ret, placeText(w, true, s))
+			// strings.Repeat(".", preGap)+s+ // fmt.Sprintf("-%vx%v", o.w, o.h)+
+			// strings.Repeat(".", postGap),
+			// )
 		}
 	}
 	return ret
@@ -78,18 +77,24 @@ func (o *tSplit) Render() []string {
 	n := o.h - 1
 	for i, v := range o.branches {
 		w, _ := v.Size()
-		preGap := misc.MaxInt(0, w/2-1)
-		postGap := misc.MaxInt(0, w-w/2)
+		// preGap := misc.MaxInt(0, w/2-1)
+		// postGap := misc.MaxInt(0, w-w/2)
 		switch i {
 		default:
-			ret[0] += strings.Repeat("-", preGap) + "V" + strings.Repeat("-", postGap)
-			ret[n] += strings.Repeat("-", preGap) + "A" + strings.Repeat("-", postGap)
+			// ret[0] += strings.Repeat("-", preGap) + "V" + strings.Repeat("-", postGap)
+			// ret[n] += strings.Repeat("-", preGap) + "A" + strings.Repeat("-", postGap)
+			ret[0] += placeLine(0, -1, w, true)
+			ret[n] += placeLine(0, 1, w, true)
 		case 0:
-			ret[0] += strings.Repeat(".", preGap) + "/" + strings.Repeat("-", postGap)
-			ret[n] += strings.Repeat(".", preGap) + "\\" + strings.Repeat("-", postGap)
+			// ret[0] += strings.Repeat(".", preGap) + "/" + strings.Repeat("-", postGap)
+			// ret[n] += strings.Repeat(".", preGap) + "\\" + strings.Repeat("-", postGap)
+			ret[0] += placeLine(-1, -1, w, true)
+			ret[n] += placeLine(-1, 1, w, true)
 		case len(o.branches) - 1:
-			ret[0] += strings.Repeat("-", preGap) + "\\" + strings.Repeat(".", postGap)
-			ret[n] += strings.Repeat("-", preGap) + "/" + strings.Repeat(".", postGap)
+			// ret[0] += strings.Repeat("-", preGap) + "\\" + strings.Repeat(".", postGap)
+			// ret[n] += strings.Repeat("-", preGap) + "/" + strings.Repeat(".", postGap)
+			ret[0] += placeLine(1, -1, w, true)
+			ret[n] += placeLine(1, 1, w, true)
 		}
 		br := v.Render()
 		for i := 0; i < h-2; i++ {
@@ -97,7 +102,8 @@ func (o *tSplit) Render() []string {
 				ret[i+1] += br[i]
 				continue
 			}
-			ret[i+1] += strings.Repeat(".", preGap) + "|" + strings.Repeat(".", postGap)
+			// ret[i+1] += strings.Repeat(".", preGap) + "|" + strings.Repeat(".", postGap)
+			ret[i+1] += placeLine(0, 0, w, true)
 		}
 	}
 	return ret
