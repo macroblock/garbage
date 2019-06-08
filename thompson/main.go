@@ -58,14 +58,15 @@ func main() {
 	elem, errors := parser.Build()
 	log.Notice(errors, "build error(s):")
 	log.Notice(elem, "result:")
-	frag, errors := Thompson(elem)
-	log.Notice(errors, "thompson error(s):")
-	if frag != nil {
-		log.Notice(frag.first, "result2:")
-		viz := newViz(frag.first)
-		_ = viz
-		fmt.Println(viz.String())
-	}
+	parser.Run("abcdefg")
+	// frag, errors := Thompson(elem)
+	// log.Notice(errors, "thompson error(s):")
+	// if frag != nil {
+	// 	log.Notice(frag.first, "result2:")
+	// 	viz := newViz(frag.first)
+	// 	_ = viz
+	// 	fmt.Println(viz.String())
+	// }
 }
 
 func print(str string, errors ...error) {
