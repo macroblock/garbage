@@ -16,6 +16,9 @@ type (
 		parser  *ptool.TParser
 		tree    *ptool.TNode
 		symbols *TSymbolTable
+
+		start   IElem
+		runners []*TRunner
 	}
 
 	// TVar -
@@ -337,6 +340,8 @@ func (o *TParser) Build() (IElem, []error) {
 		}
 		ret = split
 	}
+
+	o.start = ret
 
 	return ret, errors.Get()
 }
