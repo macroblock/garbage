@@ -1,12 +1,14 @@
 
 #include <cstdio>
-#include <conio.h>
 #include <stdint.h>
+
+#include <ncurses.h>
+#define printf(...) printw(__VA_ARGS__); refresh()
 
 using namespace std;
 
 #define SEQ_IN_PROGRESS (1<<0)
-#define SEQ_COMPLETE   (1<<1)
+#define SEQ_COMPLETE    (1<<1)
 
 #define SEQ_STATE_SET(bitfield) (seq_state |= bitfield)
 #define SEQ_STATE_GET(bitfield) (seq_state & bitfield)
@@ -33,17 +35,17 @@ using namespace std;
 // #define IS_MACRO(val) (val>>14 == ID_MACRO)
 // #define IS_JUMP(val) (val>>14 == ID_JUMP)
 
-const uint16_t seq_table[] = { SET_LIST(3), 'a', '1', 'n', '2', 'z', '3' };
-const uint16_t* seq_ptr = &seq_table[1];
+const uint16_t seq_table[] = { SET_LIST(3), 'a', '1', 'n', '2', 'z', SET_JUMP(7), SET_LIST(2), 'c', '8', 'x', '9' };
+uint16_t seq_pos = 1;
 uint8_t seq_state = 0;
 uint16_t seq_key = seq_table[0];
 uint16_t seq_val = GET_VAL(seq_table[0]);
 uint8_t seq_id = GET_ID(seq_table[0]);
 uint16_t seq_macro = uint16_t(~0);
 
-#define CODE_READ() seq_key = seq_ptr[0]; seq_id = GET_ID(seq_key); seq_val = GET_VAL(seq_key); ++seq_ptr;
-#define CODE_JUMP(pos) (seq_ptr = &seq_table[pos])
-#define CODE_RESET() (seq_ptr = &seq_table[0])
+#define CODE_READ() seq_key = seq_table[seq_pos++]; seq_id = GET_ID(seq_key); seq_val = GET_VAL(seq_key);
+#define CODE_JUMP(pos) (seq_pos = pos)
+#define CODE_RESET() (seq_pos = 0)
 
 #define seq_error(val, ...) ;
 
@@ -59,12 +61,14 @@ void seq_do_result(void) {
 }
 
 bool seq_binary_search(uint16_t size, uint16_t keycode) {
-    uint16_t l = 0;
-    uint16_t r = size-1;
+	uint16_t base_pos = seq_pos;
+    int16_t l = 0;
+    int16_t r = size-1;
     printf("debug -> bin search l:%d r:%d\n", l, r);
     while (l <= r) {
         uint16_t m = (r+l)>>1;
-        CODE_JUMP((m<<1)+1);
+        CODE_JUMP((m<<1)+base_pos);
+        // CODE_JUMP((r+1)|1);
         CODE_READ();
         printf("debug -> bin search got %c\n", seq_key);
         if (seq_key < keycode) {
@@ -72,8 +76,8 @@ bool seq_binary_search(uint16_t size, uint16_t keycode) {
         } else if (seq_key > keycode) {
             r = m-1;
         } else {
-            CODE_JUMP((m<<1)+1);
-            CODE_READ();
+            // CODE_JUMP((m<<1)+1);
+            // CODE_READ();
             printf("debug -> bin search code %d %d\n", seq_id, seq_val);
             // CODE_RESET();
             return true;
@@ -161,7 +165,7 @@ bool seq_process(uint16_t keycode) {
             return true; // interrupt to wait next keycode
         case ID_JUMP:
             CODE_JUMP(seq_val);
-            printf("debug -> jump to %d\n", seq_ptr-&seq_table[0]);
+            printf("debug -> jump to %d\n", seq_pos);
             break;
         case ID_MACRO:
             seq_macro = seq_val;
@@ -180,14 +184,27 @@ bool process_record_user(uint16_t keycode) {
 
 int main()
 {
-    printf("type key\n");
+	initscr();
+	// raw();
+	// def_prog_mode();
+	scrollok(stdscr,TRUE);
+
+    addstr("type a key\n");
     while (1) {
+		refresh();
         uint16_t key = getch();
+		if (key == 65535) {
+			printf("error: getch()\n");
+			break;
+		}
+        printf("\n> keycode: %c, %d\n", key, key);
         if (key == 0x1b) {
             break;
         }
         if (process_record_user(key)) {
-            printf("unhandled keycode: %c\n", key);
+            printf("unhandled keycode: %c, %d\n", key, key);
         }
     }
+
+	endwin();
 }
