@@ -1,10 +1,14 @@
 #include <cstdio>
 #include <stdint.h>
 
+#include <string>
+
 // #include <ncurses.h>
 // #define printf(...) printw(__VA_ARGS__); refresh()
 
 #include "keycode.h"
+
+#include "bitmapfont.h"
 
 // int main()
 // {
@@ -34,86 +38,104 @@
 
 // #include <stdio.h> /* printf and fprintf */
 
-#ifdef _WIN32
-#include <SDL/SDL.h> /* Windows-specific SDL2 library */
-#else
-#include <SDL2/SDL.h> /* macOS- and GNU/Linux-specific */
-#endif
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_image.h>
 
-/* Sets constants */
 #define WIDTH 800
 #define HEIGHT 600
-#define DELAY 3000
 
+
+#ifdef _WIN32
+int WinMain(int, char**)
+#else
 int main()
+#endif
 {
-	/* Initialises data */
-	SDL_Window *window = NULL;
+	SDL_Window* window = NULL;
+	SDL_Renderer* renderer = NULL;
 
-	/*
-  * Initialises the SDL video subsystem (as well as the events subsystem).
-  * Returns 0 on success or a negative error code on failure using SDL_GetError().
-  */
 	if (SDL_Init(SDL_INIT_VIDEO) != 0)
 	{
 		fprintf(stderr, "SDL failed to initialise: %s\n", SDL_GetError());
 		return 1;
 	}
 
-	/* Creates a SDL window */
-	window = SDL_CreateWindow("SDL Example",		   /* Title of the SDL window */
+	window = SDL_CreateWindow("qmk-test",			   /* Title of the SDL window */
 							  SDL_WINDOWPOS_UNDEFINED, /* Position x of the window */
 							  SDL_WINDOWPOS_UNDEFINED, /* Position y of the window */
 							  WIDTH,				   /* Width of the window in pixels */
 							  HEIGHT,				   /* Height of the window in pixels */
 							  0);					   /* Additional flag(s) */
-
-	/* Checks if window has been created; if not, exits program */
 	if (window == NULL)
 	{
 		fprintf(stderr, "SDL window failed to initialise: %s\n", SDL_GetError());
 		return 1;
 	}
 
-	SDL_Event event;
-	int gameover = 0;
+    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
-	/* message pump */
-	while (!gameover)
+	if (renderer == NULL)
 	{
-		/* look for an event */
-		if (SDL_PollEvent(&event))
+		fprintf(stderr, "SDL renderer failed to initialise: %s\n", SDL_GetError());
+		return 1;
+	}
+
+	IMG_Init(IMG_INIT_PNG);
+
+	font_t* font = newFont(renderer, "font-5x9-(16x7).png",
+							32, 127, 16, // first, last, per line
+							5, 9,  // rune size
+							1, 2); // dx, dy
+	setFontScale(font, 3);
+	// fprintf(stderr, "temp %d\n", font->lastRune);
+	// fprintf(stderr, "temp %p\n", (void*)font);
+
+	SDL_Event event;
+	bool quit = false;
+	bool refresh = true;
+	std::string text;
+	while (!quit)
+	{
+		while (SDL_PollEvent(&event))
 		{
+			refresh = true;
 			/* an event was found */
 			switch (event.type)
 			{
-			/* close button clicked */
 			case SDL_QUIT:
-				gameover = 1;
+				quit = 1;
 				break;
-
-			/* handle the keyboard */
 			case SDL_KEYDOWN:
 				switch (event.key.keysym.sym)
 				{
+				default:
+					setFontColor(font, color_t{255,255,0, 127});
+					text.append(1, char(event.key.keysym.sym));
+					printText(font, 1, 1, text.c_str());
+					break;
 				case SDLK_ESCAPE:
-				case SDLK_q:
-					gameover = 1;
+				// case SDLK_q:
+					quit = true;
 					break;
 				}
 				break;
+			case SDL_KEYUP:
+				setFontColor(font, color_t{0,255,255, 64});
+				text.append(1, char(event.key.keysym.sym));
+				printText(font, 1, 1, text.c_str());
+				break;
 			}
 		}
+		if (refresh) {
+			// SDL_RenderCopy(renderer, font->tex, NULL, NULL);
+        	SDL_RenderPresent(renderer);
+		}
+		SDL_Delay(10);
 	}
 
-	//   /* Pauses all SDL subsystems for a variable amount of milliseconds */
-	//   SDL_Delay(DELAY);
+	freeFont(&font);
 
-	/* Frees memory */
 	SDL_DestroyWindow(window);
-
-	/* Shuts down all SDL subsystems */
 	SDL_Quit();
-
 	return 0;
 }
