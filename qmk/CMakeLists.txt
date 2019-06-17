@@ -1,28 +1,12 @@
-cmake_minimum_required(VERSION 3.10)
+# cmake version to be used
+cmake_minimum_required( VERSION 3.10 )
+project( qmk VERSION 0.0.1 LANGUAGES CXX )
 
-project(qmk-test)
+find_package( SDL2 REQUIRED )
 
-# set(CMAKE_CXX_COMPILER "g++")
-# set(CMAKE_BINARY_DIR $CMAKE_CXX_FLAGS)
+add_executable( qmk-test ./src/main.cpp )
+target_include_directories( qmk-test PRIVATE ./include ./src )
+target_compile_options( qmk-test PRIVATE -Wall -Wextra -pedantic -Werror )
 
-set(PROJECT_SOURCE_DIR ${CMAKE_SOURCE_DIR}/sources)
-# set(PROJECT_BINARY_DIR ${CMAKE_SOURCE_DIR}/bin)
-
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
-
-find_package(Curses REQUIRED)
-include_directories(${CURSES_INCLUDE_DIR})
-
-set(SRC_LIST ${PROJECT_SOURCE_DIR}/main.cpp)
-
-add_executable(${PROJECT_NAME} ${SRC_LIST})
-target_link_libraries(${PROJECT_NAME} ${CURSES_LIBRARIES})
-
-# get_target_property(EXE_NAME ${PROJECT_NAME} OUTPUT_NAME)
-# message("#########" ${EXE_NAME})
-
-add_custom_target(run
-    COMMAND bin
-    DEPENDS bin
-    WORKING_DIRECTORY ${EXECUTABLE_OUTPUT_PATH}
-)
+# external libs
+target_link_libraries( qmk-test PRIVATE SDL2 )
