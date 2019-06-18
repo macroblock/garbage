@@ -2,6 +2,8 @@
 #include <cstdio>
 #include <stdint.h>
 
+#include "keys.h"
+
 using namespace std;
 
 #define SEQ_IN_PROGRESS (1 << 0)
@@ -182,7 +184,7 @@ bool seq_process(uint16_t keycode)
 
 		switch (seq_id)
 		{
-		default:						 // unreachable
+		default:
 			seq_error("unreachable", 0); // error
 			seq_reset();
 			return false;
