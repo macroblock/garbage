@@ -2,7 +2,7 @@
 #include <cstdio>
 #include <stdint.h>
 
-#include "keys.h"
+#include "qmk.h"
 
 using namespace std;
 

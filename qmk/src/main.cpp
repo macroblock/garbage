@@ -10,6 +10,8 @@
 
 #include "bitmapfont.h"
 
+#include "qmk.h"
+
 // int main()
 // {
 // 	initscr();
@@ -174,6 +176,8 @@ int main()
 	setFontScale(font, 2);
 	// fprintf(stderr, "temp %d\n", font->lastRune);
 	// fprintf(stderr, "temp %p\n", (void*)font);
+
+	qmk_init_keyboard();
 
 	SDL_Event event;
 	bool quit = false;
