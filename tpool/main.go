@@ -5,7 +5,7 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/macroblock/garbage/workers/tpool"
+	"github.com/macroblock/garbage/tpool/tpool"
 )
 
 const (
